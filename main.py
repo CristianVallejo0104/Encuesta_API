@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
 from models import EncuestaCompleta, EncuestaDB, EstadisticasResponse
-from fastapi.responses import HTMLResponse, JSONResponse 
+from fastapi.responses import HTMLResponse
 
 
 
