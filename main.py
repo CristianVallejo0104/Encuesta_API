@@ -18,6 +18,10 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
 from models import EncuestaCompleta, EncuestaDB, EstadisticasResponse
+from fastapi.responses import HTMLResponse, JSONResponse 
+
+
+
 
 # =============================================================================
 # CONFIGURACIÓN DE LOGGING
@@ -269,12 +273,593 @@ async def eliminar_encuesta(encuesta_id: str) -> None:
 
 
 # ── GET / ────────────────────────────────────────────────────────────────────
-@app.get("/", tags=["Sistema"], summary="Estado de la API")
+# ── GET / — Interfaz web ─────────────────────────────────────────────────
+@app.get("/", response_class=HTMLResponse, tags=["Sistema"], summary="Interfaz web")
 async def raiz():
-    return {
-        "api": "API de Encuestas Poblacionales — GEIH DANE 2024",
-        "version": "1.0.0",
-        "estado": "operativa",
-        "encuestas_en_memoria": len(db_encuestas),
-        "documentacion": {"swagger": "/docs", "redoc": "/redoc"},
+    return """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Encuestas GEIH — DANE 2024</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primario: #1a56db;
+    --primario-oscuro: #1341b0;
+    --fondo: #f8fafc;
+    --blanco: #ffffff;
+    --gris-100: #f1f5f9;
+    --gris-200: #e2e8f0;
+    --gris-400: #94a3b8;
+    --gris-700: #334155;
+    --gris-900: #0f172a;
+    --verde: #16a34a;
+    --rojo: #dc2626;
+    --amarillo: #d97706;
+    --borde: #e2e8f0;
+    --sombra: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --sombra-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:var(--fondo); color:var(--gris-900); min-height:100vh; }
+
+  /* HEADER */
+  header {
+    background:var(--blanco);
+    border-bottom:1px solid var(--borde);
+    padding:0 32px;
+    display:flex; align-items:center; justify-content:space-between;
+    height:64px; position:sticky; top:0; z-index:100;
+    box-shadow:var(--sombra);
+  }
+  .header-left { display:flex; align-items:center; gap:12px; }
+  .logo {
+    width:36px; height:36px; background:var(--primario);
+    border-radius:8px; display:flex; align-items:center;
+    justify-content:center; font-size:18px;
+  }
+  .header-title { font-size:16px; font-weight:700; color:var(--gris-900); }
+  .header-sub { font-size:12px; color:var(--gris-400); margin-top:1px; }
+  .badge-api {
+    background:#eff6ff; color:var(--primario);
+    border:1px solid #bfdbfe; border-radius:20px;
+    padding:3px 10px; font-size:11px; font-weight:600;
+  }
+
+  /* LAYOUT */
+  .container { max-width:1200px; margin:0 auto; padding:32px 24px; }
+
+  /* STATS TOP */
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+  .stat-card {
+    background:var(--blanco); border:1px solid var(--borde);
+    border-radius:12px; padding:20px 24px;
+    box-shadow:var(--sombra);
+  }
+  .stat-card .label { font-size:12px; color:var(--gris-400); text-transform:uppercase; letter-spacing:0.5px; font-weight:500; }
+  .stat-card .valor { font-size:28px; font-weight:700; color:var(--gris-900); margin-top:4px; }
+  .stat-card .sub { font-size:12px; color:var(--gris-400); margin-top:2px; }
+
+  /* GRID PRINCIPAL */
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .full { grid-column:1/-1; }
+
+  /* CARDS */
+  .card {
+    background:var(--blanco); border:1px solid var(--borde);
+    border-radius:12px; box-shadow:var(--sombra);
+    overflow:hidden;
+  }
+  .card-header {
+    padding:16px 24px; border-bottom:1px solid var(--borde);
+    display:flex; align-items:center; gap:10px;
+  }
+  .card-header h2 { font-size:15px; font-weight:600; color:var(--gris-900); }
+  .card-body { padding:24px; }
+
+  /* FORMULARIO */
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .form-group { display:flex; flex-direction:column; gap:5px; }
+  .form-group.full { grid-column:1/-1; }
+  label { font-size:12px; font-weight:500; color:var(--gris-700); }
+  input, select, textarea {
+    border:1px solid var(--borde); border-radius:8px;
+    padding:9px 12px; font-family:'Inter',sans-serif;
+    font-size:14px; color:var(--gris-900); background:var(--blanco);
+    outline:none; transition:border 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color:var(--primario); box-shadow:0 0 0 3px rgba(26,86,219,0.1); }
+  textarea { resize:vertical; min-height:80px; }
+
+  /* BOTONES */
+  .btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    gap:6px; padding:9px 20px; border-radius:8px; border:none;
+    font-family:'Inter',sans-serif; font-size:14px; font-weight:500;
+    cursor:pointer; transition:all 0.15s;
+  }
+  .btn-primary { background:var(--primario); color:#fff; }
+  .btn-primary:hover { background:var(--primario-oscuro); }
+  .btn-outline {
+    background:transparent; color:var(--gris-700);
+    border:1px solid var(--borde);
+  }
+  .btn-outline:hover { background:var(--gris-100); }
+  .btn-danger { background:#fef2f2; color:var(--rojo); border:1px solid #fecaca; }
+  .btn-danger:hover { background:#fee2e2; }
+  .btn-sm { padding:5px 12px; font-size:12px; }
+
+  /* RESPUESTAS */
+  .respuestas-container { display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
+  .respuesta-item {
+    background:var(--gris-100); border:1px solid var(--borde);
+    border-radius:8px; padding:12px 14px;
+    display:grid; grid-template-columns:80px 100px 1fr auto; gap:10px; align-items:center;
+  }
+
+  /* TABLA */
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  thead tr { background:var(--gris-100); }
+  th { padding:10px 14px; text-align:left; font-size:11px; font-weight:600; color:var(--gris-400); text-transform:uppercase; letter-spacing:0.5px; }
+  td { padding:12px 14px; border-bottom:1px solid var(--borde); color:var(--gris-700); }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:var(--gris-100); }
+
+  /* BADGES */
+  .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .badge-verde { background:#dcfce7; color:#15803d; }
+  .badge-azul { background:#dbeafe; color:#1d4ed8; }
+  .badge-gris { background:var(--gris-100); color:var(--gris-400); }
+
+  /* ALERTAS */
+  .alert { border-radius:8px; padding:12px 16px; font-size:13px; margin-top:14px; display:none; }
+  .alert.visible { display:block; }
+  .alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; }
+  .alert-error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; }
+  .alert-info { background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; }
+
+  /* GRÁFICAS */
+  .chart-container { display:flex; flex-direction:column; gap:8px; }
+  .chart-bar-row { display:flex; align-items:center; gap:10px; font-size:13px; }
+  .chart-bar-label { width:120px; color:var(--gris-700); font-size:12px; text-align:right; flex-shrink:0; }
+  .chart-bar-track { flex:1; background:var(--gris-100); border-radius:4px; height:22px; overflow:hidden; }
+  .chart-bar-fill { height:100%; background:var(--primario); border-radius:4px; display:flex; align-items:center; padding-left:8px; color:#fff; font-size:11px; font-weight:600; transition:width 0.5s ease; min-width:30px; }
+  .chart-bar-val { width:40px; color:var(--gris-400); font-size:12px; }
+
+  /* SEARCH */
+  .search-box { display:flex; gap:10px; margin-bottom:16px; }
+  .search-box input { flex:1; }
+
+  /* EMPTY */
+  .empty { text-align:center; padding:40px; color:var(--gris-400); }
+  .empty-icon { font-size:36px; margin-bottom:8px; }
+
+  /* TABS */
+  .tabs { display:flex; gap:4px; border-bottom:1px solid var(--borde); margin-bottom:20px; }
+  .tab {
+    padding:10px 16px; font-size:13px; font-weight:500;
+    color:var(--gris-400); cursor:pointer; border-bottom:2px solid transparent;
+    margin-bottom:-1px; transition:all 0.15s;
+  }
+  .tab.active { color:var(--primario); border-bottom-color:var(--primario); }
+
+  .spinner { display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">📊</div>
+    <div>
+      <div class="header-title">Encuestas Poblacionales</div>
+      <div class="header-sub">GEIH — DANE Diciembre 2024</div>
+    </div>
+  </div>
+  <span class="badge-api">API v1.0.0</span>
+</header>
+
+<div class="container">
+
+  <!-- STATS TOP -->
+  <div class="stats-row" id="stats-top">
+    <div class="stat-card">
+      <div class="label">Encuestas registradas</div>
+      <div class="valor" id="st-total">—</div>
+      <div class="sub">en memoria</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Promedio de edad</div>
+      <div class="valor" id="st-edad">—</div>
+      <div class="sub">años</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Mediana de edad</div>
+      <div class="valor" id="st-mediana">—</div>
+      <div class="sub">años</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Resp. por encuesta</div>
+      <div class="valor" id="st-resp">—</div>
+      <div class="sub">promedio</div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- REGISTRAR ENCUESTA -->
+    <div class="card">
+      <div class="card-header">
+        <span>📝</span>
+        <h2>Registrar encuesta</h2>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Nombre completo</label>
+            <input type="text" id="f-nombre" placeholder="Ej: María García">
+          </div>
+          <div class="form-group">
+            <label>Edad</label>
+            <input type="number" id="f-edad" placeholder="0 – 120" min="0" max="120">
+          </div>
+          <div class="form-group">
+            <label>Sexo</label>
+            <select id="f-sexo">
+              <option value="F">F — Femenino</option>
+              <option value="M">M — Masculino</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Estrato DANE (1–6)</label>
+            <select id="f-estrato">
+              <option value="1">Estrato 1</option>
+              <option value="2">Estrato 2</option>
+              <option value="3" selected>Estrato 3</option>
+              <option value="4">Estrato 4</option>
+              <option value="5">Estrato 5</option>
+              <option value="6">Estrato 6</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Departamento</label>
+            <select id="f-departamento">
+              <option>Amazonas</option><option>Antioquia</option><option>Arauca</option>
+              <option>Atlántico</option><option>Bogotá D.C.</option><option>Bolívar</option>
+              <option>Boyacá</option><option>Caldas</option><option>Caquetá</option>
+              <option>Casanare</option><option>Cauca</option><option>Cesar</option>
+              <option>Chocó</option><option>Córdoba</option><option>Cundinamarca</option>
+              <option>Guainía</option><option>Guaviare</option><option>Huila</option>
+              <option>La Guajira</option><option>Magdalena</option><option>Meta</option>
+              <option>Nariño</option><option>Norte de Santander</option><option>Putumayo</option>
+              <option>Quindío</option><option>Risaralda</option>
+              <option>San Andrés y Providencia</option><option>Santander</option>
+              <option>Sucre</option><option>Tolima</option><option>Valle del Cauca</option>
+              <option>Vaupés</option><option>Vichada</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Área geográfica</label>
+            <select id="f-area">
+              <option value="cabecera">Cabecera municipal</option>
+              <option value="rural_disperso">Rural disperso</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Nivel educativo</label>
+            <select id="f-nivel">
+              <option value="ninguno">Ninguno</option>
+              <option value="primaria">Primaria</option>
+              <option value="secundaria" selected>Secundaria</option>
+              <option value="tecnico">Técnico</option>
+              <option value="tecnologico">Tecnológico</option>
+              <option value="universitario">Universitario</option>
+              <option value="posgrado">Posgrado</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Afiliado a salud</label>
+            <select id="f-salud">
+              <option value="true">Sí</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin:16px 0 8px">
+          <label style="font-size:13px;font-weight:600;color:var(--gris-900)">Respuestas de la encuesta</label>
+        </div>
+        <div class="respuestas-container" id="respuestas-lista">
+          <div class="respuesta-item">
+            <input placeholder="P01" value="P01" style="font-size:13px">
+            <select style="font-size:13px">
+              <option value="likert">Likert</option>
+              <option value="porcentaje">Porcentaje</option>
+              <option value="binaria">Binaria</option>
+              <option value="texto">Texto</option>
+            </select>
+            <input placeholder="Valor" style="font-size:13px">
+            <button class="btn btn-danger btn-sm" onclick="eliminarRespuesta(this)">✕</button>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="agregarRespuesta()" style="margin-bottom:16px">+ Agregar respuesta</button>
+
+        <button class="btn btn-primary" style="width:100%" onclick="registrarEncuesta()">
+          Registrar encuesta
+        </button>
+        <div class="alert" id="alert-registro"></div>
+      </div>
+    </div>
+
+    <!-- BUSCAR POR ID -->
+    <div class="card">
+      <div class="card-header">
+        <span>🔍</span>
+        <h2>Buscar encuesta por ID</h2>
+      </div>
+      <div class="card-body">
+        <div class="search-box">
+          <input type="text" id="buscar-id" placeholder="UUID de la encuesta...">
+          <button class="btn btn-primary" onclick="buscarPorId()">Buscar</button>
+        </div>
+        <div id="resultado-busqueda"></div>
+      </div>
+
+      <!-- ESTADÍSTICAS -->
+      <div class="card-header" style="margin-top:8px">
+        <span>📈</span>
+        <h2>Distribución por estrato</h2>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" id="chart-estrato">
+          <div class="empty"><div class="empty-icon">📊</div><div>Sin datos aún</div></div>
+        </div>
+      </div>
+      <div class="card-header">
+        <span>🗺️</span>
+        <h2>Top departamentos</h2>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" id="chart-depto">
+          <div class="empty"><div class="empty-icon">📊</div><div>Sin datos aún</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TODAS LAS ENCUESTAS -->
+    <div class="card full">
+      <div class="card-header">
+        <span>📋</span>
+        <h2>Encuestas registradas</h2>
+        <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="cargarEncuestas()">↻ Actualizar</button>
+      </div>
+      <div class="card-body" style="padding:0">
+        <div id="tabla-encuestas">
+          <div class="empty"><div class="empty-icon">📋</div><div>No hay encuestas registradas aún</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000";
+
+// ── Agregar/quitar respuestas ─────────────────────────────────────────────
+function agregarRespuesta() {
+  const cont = document.getElementById("respuestas-lista");
+  const n = cont.children.length + 1;
+  const id = String(n).padStart(2,"0");
+  const div = document.createElement("div");
+  div.className = "respuesta-item";
+  div.innerHTML = `
+    <input placeholder="P${id}" value="P${id}" style="font-size:13px">
+    <select style="font-size:13px">
+      <option value="likert">Likert</option>
+      <option value="porcentaje">Porcentaje</option>
+      <option value="binaria">Binaria</option>
+      <option value="texto">Texto</option>
+    </select>
+    <input placeholder="Valor" style="font-size:13px">
+    <button class="btn btn-danger btn-sm" onclick="eliminarRespuesta(this)">✕</button>
+  `;
+  cont.appendChild(div);
+}
+
+function eliminarRespuesta(btn) {
+  const cont = document.getElementById("respuestas-lista");
+  if (cont.children.length > 1) btn.closest(".respuesta-item").remove();
+}
+
+// ── Registrar encuesta ────────────────────────────────────────────────────
+async function registrarEncuesta() {
+  const alert = document.getElementById("alert-registro");
+  alert.className = "alert";
+
+  const items = document.querySelectorAll("#respuestas-lista .respuesta-item");
+  const respuestas = Array.from(items).map((item, i) => {
+    const inputs = item.querySelectorAll("input");
+    const sel = item.querySelector("select");
+    let valor = inputs[1].value.trim();
+    const tipo = sel.value;
+    if (tipo === "likert" || tipo === "porcentaje") valor = parseFloat(valor);
+    return { pregunta_id: inputs[0].value.trim(), tipo_pregunta: tipo, valor };
+  });
+
+  const payload = {
+    encuestado: {
+      nombre: document.getElementById("f-nombre").value,
+      edad: parseInt(document.getElementById("f-edad").value),
+      sexo: document.getElementById("f-sexo").value,
+      estrato: parseInt(document.getElementById("f-estrato").value),
+      departamento: document.getElementById("f-departamento").value,
+      area: document.getElementById("f-area").value,
+      nivel_educativo: document.getElementById("f-nivel").value,
+      afiliado_salud: document.getElementById("f-salud").value === "true"
+    },
+    respuestas,
+    fuente: "Interfaz-Web"
+  };
+
+  try {
+    const r = await fetch(`${API}/encuestas/`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (r.status === 201) {
+      alert.className = "alert alert-success visible";
+      alert.innerHTML = `✅ Encuesta registrada correctamente. ID: <code style="font-size:11px">${data.id}</code>`;
+      cargarEstadisticas();
+      cargarEncuestas();
+    } else {
+      const errores = data.errores?.map(e => `<li><b>${e.campo}</b>: ${e.mensaje}</li>`).join("") || "";
+      alert.className = "alert alert-error visible";
+      alert.innerHTML = `❌ Error de validación:<ul style="margin-top:6px;padding-left:16px">${errores}</ul>`;
     }
+  } catch(e) {
+    alert.className = "alert alert-error visible";
+    alert.innerHTML = "❌ No se pudo conectar con la API.";
+  }
+}
+
+// ── Buscar por ID ─────────────────────────────────────────────────────────
+async function buscarPorId() {
+  const id = document.getElementById("buscar-id").value.trim();
+  const div = document.getElementById("resultado-busqueda");
+  if (!id) return;
+  try {
+    const r = await fetch(`${API}/encuestas/${id}`);
+    if (r.status === 404) {
+      div.innerHTML = `<div class="alert alert-error visible">❌ No se encontró ninguna encuesta con ese ID.</div>`;
+      return;
+    }
+    const d = await r.json();
+    div.innerHTML = `
+      <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:10px;padding:16px;font-size:13px">
+        <div style="font-weight:600;font-size:15px;margin-bottom:10px">${d.encuestado.nombre}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;color:var(--gris-700)">
+          <div>📍 <b>Departamento:</b> ${d.encuestado.departamento}</div>
+          <div>🎂 <b>Edad:</b> ${d.encuestado.edad} años</div>
+          <div>⚡ <b>Estrato:</b> ${d.encuestado.estrato}</div>
+          <div>🎓 <b>Nivel:</b> ${d.encuestado.nivel_educativo}</div>
+          <div>👤 <b>Sexo:</b> ${d.encuestado.sexo}</div>
+          <div>🏥 <b>Salud:</b> ${d.encuestado.afiliado_salud ? "Sí" : "No"}</div>
+        </div>
+        <div style="margin-top:10px;color:var(--gris-400);font-size:11px">
+          ID: ${d.id} · Registrado: ${new Date(d.registrado_en).toLocaleString("es-CO")}
+        </div>
+        <button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="eliminarEncuesta('${d.id}')">🗑 Eliminar esta encuesta</button>
+      </div>`;
+  } catch(e) {
+    div.innerHTML = `<div class="alert alert-error visible">❌ Error conectando con la API.</div>`;
+  }
+}
+
+// ── Eliminar encuesta ─────────────────────────────────────────────────────
+async function eliminarEncuesta(id) {
+  if (!confirm("¿Seguro que deseas eliminar esta encuesta?")) return;
+  await fetch(`${API}/encuestas/${id}`, {method:"DELETE"});
+  document.getElementById("resultado-busqueda").innerHTML =
+    `<div class="alert alert-info visible">🗑 Encuesta eliminada correctamente.</div>`;
+  cargarEstadisticas();
+  cargarEncuestas();
+}
+
+// ── Cargar estadísticas ───────────────────────────────────────────────────
+async function cargarEstadisticas() {
+  try {
+    const r = await fetch(`${API}/encuestas/estadisticas/`);
+    const d = await r.json();
+
+    document.getElementById("st-total").textContent = d.total_encuestas;
+    document.getElementById("st-edad").textContent = d.promedio_edad || "—";
+    document.getElementById("st-mediana").textContent = d.mediana_edad || "—";
+    document.getElementById("st-resp").textContent = d.promedio_respuestas_por_encuesta || "—";
+
+    // Gráfica estrato
+    const estDiv = document.getElementById("chart-estrato");
+    const estData = d.distribucion_estrato;
+    const maxEst = Math.max(...Object.values(estData), 1);
+    if (Object.keys(estData).length === 0) {
+      estDiv.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><div>Sin datos aún</div></div>`;
+    } else {
+      estDiv.innerHTML = Object.entries(estData).sort((a,b)=>a[0]-b[0]).map(([k,v]) => `
+        <div class="chart-bar-row">
+          <div class="chart-bar-label">Estrato ${k}</div>
+          <div class="chart-bar-track">
+            <div class="chart-bar-fill" style="width:${Math.max(v/maxEst*100,5)}%">${v}</div>
+          </div>
+          <div class="chart-bar-val">${v}</div>
+        </div>`).join("");
+    }
+
+    // Gráfica departamento (top 5)
+    const depDiv = document.getElementById("chart-depto");
+    const depData = d.distribucion_departamento;
+    const maxDep = Math.max(...Object.values(depData), 1);
+    if (Object.keys(depData).length === 0) {
+      depDiv.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><div>Sin datos aún</div></div>`;
+    } else {
+      const top5 = Object.entries(depData).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      depDiv.innerHTML = top5.map(([k,v]) => `
+        <div class="chart-bar-row">
+          <div class="chart-bar-label">${k}</div>
+          <div class="chart-bar-track">
+            <div class="chart-bar-fill" style="width:${Math.max(v/maxDep*100,5)}%">${v}</div>
+          </div>
+          <div class="chart-bar-val">${v}</div>
+        </div>`).join("");
+    }
+  } catch(e) {}
+}
+
+// ── Cargar tabla encuestas ────────────────────────────────────────────────
+async function cargarEncuestas() {
+  const div = document.getElementById("tabla-encuestas");
+  try {
+    const r = await fetch(`${API}/encuestas/`);
+    const data = await r.json();
+    if (data.length === 0) {
+      div.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div>No hay encuestas registradas aún</div></div>`;
+      return;
+    }
+    div.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th><th>Depto.</th><th>Edad</th>
+            <th>Estrato</th><th>Nivel educativo</th><th>Fuente</th><th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(e => `
+            <tr>
+              <td><b>${e.encuestado.nombre}</b></td>
+              <td>${e.encuestado.departamento}</td>
+              <td>${e.encuestado.edad}</td>
+              <td><span class="badge badge-azul">E${e.encuestado.estrato}</span></td>
+              <td><span class="badge badge-gris">${e.encuestado.nivel_educativo || "—"}</span></td>
+              <td>${e.fuente || "—"}</td>
+              <td>
+                <button class="btn btn-danger btn-sm" onclick="eliminarEncuesta('${e.id}')">🗑</button>
+              </td>
+            </tr>`).join("")}
+        </tbody>
+      </table>`;
+  } catch(e) {
+    div.innerHTML = `<div class="empty">Error cargando encuestas.</div>`;
+  }
+}
+
+// Cargar al iniciar
+cargarEstadisticas();
+cargarEncuestas();
+</script>
+</body>
+</html>
+"""
