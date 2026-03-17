@@ -1,6 +1,4 @@
 """
-cliente_csv.py
-Bonus +0.1 — Cliente Python consumidor de la API.
 
 Lee el dataset GEIH 2024 desde CSV con pandas,
 envía registros a la API y genera un reporte estadístico.

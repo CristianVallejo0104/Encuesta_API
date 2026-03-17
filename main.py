@@ -271,8 +271,58 @@ async def eliminar_encuesta(encuesta_id: str) -> None:
     del db_encuestas[encuesta_id]
     logger.info(f"🗑 Encuesta eliminada | ID: {encuesta_id}")
 
+# ── GET /encuestas/estadisticas/respuestas/ ──────────────────────────────
+@app.get(
+    "/encuestas/estadisticas/respuestas/",
+    summary="Estadísticas de respuestas",
+    description="Calcula estadísticas descriptivas de las respuestas de la encuesta.",
+    tags=["Estadísticas"]
+)
+@log_request
+async def estadisticas_respuestas():
+    encuestas = list(db_encuestas.values())
 
-# ── GET / ────────────────────────────────────────────────────────────────────
+    if not encuestas:
+        return {
+            "p01_promedio_satisfaccion": 0,
+            "p02_promedio_calidad_vida": 0,
+            "p03_promedio_gasto_alimentacion": 0,
+            "p04_acceso_internet": {"si": 0, "no": 0},
+            "p05_preocupaciones": {}
+        }
+
+    p01_vals, p02_vals, p03_vals, p04_vals, p05_vals = [], [], [], [], []
+
+    for enc in encuestas:
+        for resp in enc.respuestas:
+            if resp.pregunta_id == "P01":
+                p01_vals.append(float(resp.valor))
+            elif resp.pregunta_id == "P02":
+                p02_vals.append(float(resp.valor))
+            elif resp.pregunta_id == "P03":
+                p03_vals.append(float(resp.valor))
+            elif resp.pregunta_id == "P04":
+                p04_vals.append(str(resp.valor).lower())
+            elif resp.pregunta_id == "P05":
+                p05_vals.append(str(resp.valor))
+
+    # Contar P04
+    p04_si = p04_vals.count("si") + p04_vals.count("sí")
+    p04_no = p04_vals.count("no")
+
+    # Contar P05 top 5
+    from collections import Counter
+    p05_top = dict(Counter(p05_vals).most_common(5))
+
+    return {
+        "p01_promedio_satisfaccion": round(sum(p01_vals)/len(p01_vals), 2) if p01_vals else 0,
+        "p02_promedio_calidad_vida": round(sum(p02_vals)/len(p02_vals), 2) if p02_vals else 0,
+        "p03_promedio_gasto_alimentacion": round(sum(p03_vals)/len(p03_vals), 2) if p03_vals else 0,
+        "p04_acceso_internet": {"si": p04_si, "no": p04_no},
+        "p05_preocupaciones": p05_top
+    }
+
+
 # ── GET / — Interfaz web ─────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse, tags=["Sistema"], summary="Interfaz web")
 async def raiz():
@@ -570,27 +620,96 @@ async def raiz():
         </div>
 
         <div style="margin:16px 0 8px">
-          <label style="font-size:13px;font-weight:600;color:var(--gris-900)">Respuestas de la encuesta</label>
-        </div>
-        <div class="respuestas-container" id="respuestas-lista">
-          <div class="respuesta-item">
-            <input placeholder="P01" value="P01" style="font-size:13px">
-            <select style="font-size:13px">
-              <option value="likert">Likert</option>
-              <option value="porcentaje">Porcentaje</option>
-              <option value="binaria">Binaria</option>
-              <option value="texto">Texto</option>
-            </select>
-            <input placeholder="Valor" style="font-size:13px">
-            <button class="btn btn-danger btn-sm" onclick="eliminarRespuesta(this)">✕</button>
-          </div>
-        </div>
-        <button class="btn btn-outline btn-sm" onclick="agregarRespuesta()" style="margin-bottom:16px">+ Agregar respuesta</button>
+            <label style="font-size:13px;font-weight:600;color:var(--gris-900)">
+                Respuestas de la encuesta — GEIH 2024
+            </label>
+            <p style="font-size:11px;color:var(--gris-400);margin-top:3px">
+                Preguntas basadas en variables reales de la Gran Encuesta Integrada de Hogares — DANE
+            </p>
+            </div>
 
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+
+            <!-- P01 -->
+            <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-size:11px;font-weight:600;color:var(--primario);background:#eff6ff;padding:2px 8px;border-radius:4px">P01 — Likert (1 a 5)</span>
+                </div>
+                <label style="font-size:12px;color:var(--gris-700);margin-bottom:6px;display:block">
+                ¿Qué tan satisfecho está con los servicios públicos de su municipio?
+                </label>
+                <div style="display:flex;gap:8px;align-items:center">
+                <select id="p01-valor" style="flex:1;font-size:13px">
+                    <option value="">— Seleccione —</option>
+                    <option value="1">1 — Muy insatisfecho</option>
+                    <option value="2">2 — Insatisfecho</option>
+                    <option value="3">3 — Neutral</option>
+                    <option value="4">4 — Satisfecho</option>
+                    <option value="5">5 — Muy satisfecho</option>
+                </select>
+                </div>
+            </div>
+
+            <!-- P02 -->
+            <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-size:11px;font-weight:600;color:var(--primario);background:#eff6ff;padding:2px 8px;border-radius:4px">P02 — Likert (1 a 5)</span>
+                </div>
+                <label style="font-size:12px;color:var(--gris-700);margin-bottom:6px;display:block">
+                ¿Cómo califica su calidad de vida en el último año?
+                </label>
+                <select id="p02-valor" style="width:100%;font-size:13px">
+                <option value="">— Seleccione —</option>
+                <option value="1">1 — Muy mala</option>
+                <option value="2">2 — Mala</option>
+                <option value="3">3 — Regular</option>
+                <option value="4">4 — Buena</option>
+                <option value="5">5 — Muy buena</option>
+                </select>
+            </div>
+
+            <!-- P03 -->
+            <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-size:11px;font-weight:600;color:#15803d;background:#dcfce7;padding:2px 8px;border-radius:4px">P03 — Porcentaje (0 a 100)</span>
+                </div>
+                <label style="font-size:12px;color:var(--gris-700);margin-bottom:6px;display:block">
+                ¿Qué porcentaje de sus ingresos destina a alimentación?
+                </label>
+                <input type="number" id="p03-valor" placeholder="Ej: 45.5" min="0" max="100" step="0.1" style="width:100%;font-size:13px">
+            </div>
+
+            <!-- P04 -->
+            <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-size:11px;font-weight:600;color:#d97706;background:#fef3c7;padding:2px 8px;border-radius:4px">P04 — Binaria (si / no)</span>
+                </div>
+                <label style="font-size:12px;color:var(--gris-700);margin-bottom:6px;display:block">
+                ¿Su hogar tiene acceso a internet?
+                </label>
+                <select id="p04-valor" style="width:100%;font-size:13px">
+                <option value="">— Seleccione —</option>
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+                </select>
+            </div>
+
+            <!-- P05 -->
+            <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-size:11px;font-weight:600;color:#7c3aed;background:#ede9fe;padding:2px 8px;border-radius:4px">P05 — Texto libre</span>
+                </div>
+                <label style="font-size:12px;color:var(--gris-700);margin-bottom:6px;display:block">
+                ¿Cuál es su principal preocupación en su municipio?
+                </label>
+                <input type="text" id="p05-valor" placeholder="Ej: Falta de empleo, inseguridad..." style="width:100%;font-size:13px">
+            </div>
+
+</div>
+        <div class="alert" id="alert-registro"></div>
         <button class="btn btn-primary" style="width:100%" onclick="registrarEncuesta()">
           Registrar encuesta
         </button>
-        <div class="alert" id="alert-registro"></div>
       </div>
     </div>
 
@@ -628,6 +747,83 @@ async def raiz():
         </div>
       </div>
     </div>
+    <div class="card-header">
+        <span>📊</span>
+        <h2>Estadísticas de respuestas</h2>
+      </div>
+      <div class="card-body">
+
+        <p style="font-size:11px;color:var(--gris-400);margin-bottom:12px">
+          Basado en preguntas GEIH 2024 — DANE
+        </p>
+
+        <!-- P01 -->
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:4px">
+            P01 — Satisfacción con servicios públicos
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1;background:var(--gris-100);border-radius:4px;height:22px;overflow:hidden">
+              <div id="bar-p01" style="height:100%;background:var(--primario);border-radius:4px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:600;transition:width 0.5s;min-width:30px;width:0%">0</div>
+            </div>
+            <span id="val-p01" style="font-size:12px;color:var(--gris-400);width:60px">— / 5</span>
+          </div>
+        </div>
+
+        <!-- P02 -->
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:4px">
+            P02 — Calidad de vida
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1;background:var(--gris-100);border-radius:4px;height:22px;overflow:hidden">
+              <div id="bar-p02" style="height:100%;background:#7c3aed;border-radius:4px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:600;transition:width 0.5s;min-width:30px;width:0%">0</div>
+            </div>
+            <span id="val-p02" style="font-size:12px;color:var(--gris-400);width:60px">— / 5</span>
+          </div>
+        </div>
+
+        <!-- P03 -->
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:4px">
+            P03 — Gasto en alimentación (% promedio)
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1;background:var(--gris-100);border-radius:4px;height:22px;overflow:hidden">
+              <div id="bar-p03" style="height:100%;background:#16a34a;border-radius:4px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:600;transition:width 0.5s;min-width:30px;width:0%">0%</div>
+            </div>
+            <span id="val-p03" style="font-size:12px;color:var(--gris-400);width:60px">—%</span>
+          </div>
+        </div>
+
+        <!-- P04 -->
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:6px">
+            P04 — Acceso a internet
+          </div>
+          <div style="display:flex;gap:10px">
+            <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;text-align:center">
+              <div id="val-p04-si" style="font-size:20px;font-weight:700;color:#15803d">—</div>
+              <div style="font-size:11px;color:#15803d">Sí tienen</div>
+            </div>
+            <div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;text-align:center">
+              <div id="val-p04-no" style="font-size:20px;font-weight:700;color:#dc2626">—</div>
+              <div style="font-size:11px;color:#dc2626">No tienen</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- P05 -->
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:6px">
+            P05 — Principales preocupaciones
+          </div>
+          <div id="chart-p05" style="display:flex;flex-direction:column;gap:4px">
+            <div style="text-align:center;color:var(--gris-400);font-size:12px">Sin datos aún</div>
+          </div>
+        </div>
+
+      </div>
 
     <!-- TODAS LAS ENCUESTAS -->
     <div class="card full">
@@ -677,18 +873,53 @@ function eliminarRespuesta(btn) {
 
 // ── Registrar encuesta ────────────────────────────────────────────────────
 async function registrarEncuesta() {
-  const alert = document.getElementById("alert-registro");
-  alert.className = "alert";
+    const alertDiv = document.getElementById("alert-registro");
+    alertDiv.className = "alert";
+    const p01 = document.getElementById("p01-valor").value;
+    const p02 = document.getElementById("p02-valor").value;
+    const p03 = document.getElementById("p03-valor").value;
+    const p04 = document.getElementById("p04-valor").value;
+    const p05 = document.getElementById("p05-valor").value;
 
-  const items = document.querySelectorAll("#respuestas-lista .respuesta-item");
-  const respuestas = Array.from(items).map((item, i) => {
-    const inputs = item.querySelectorAll("input");
-    const sel = item.querySelector("select");
-    let valor = inputs[1].value.trim();
-    const tipo = sel.value;
-    if (tipo === "likert" || tipo === "porcentaje") valor = parseFloat(valor);
-    return { pregunta_id: inputs[0].value.trim(), tipo_pregunta: tipo, valor };
-  });
+    if (!p01 || !p02 || !p03 || !p04 || !p05) {
+    alertDiv.className = "alert alert-error visible";
+    alertDiv.innerHTML = "❌ Por favor completa todas las preguntas de la encuesta.";
+    alertDiv.scrollIntoView({ behavior: "smooth", block: "center" });;
+    return;
+    }
+
+    const respuestas = [
+    {
+        pregunta_id: "P01",
+        enunciado: "¿Qué tan satisfecho está con los servicios públicos de su municipio?",
+        tipo_pregunta: "likert",
+        valor: parseInt(p01)
+    },
+    {
+        pregunta_id: "P02",
+        enunciado: "¿Cómo califica su calidad de vida en el último año?",
+        tipo_pregunta: "likert",
+        valor: parseInt(p02)
+    },
+    {
+        pregunta_id: "P03",
+        enunciado: "¿Qué porcentaje de sus ingresos destina a alimentación?",
+        tipo_pregunta: "porcentaje",
+        valor: parseFloat(p03)
+    },
+    {
+        pregunta_id: "P04",
+        enunciado: "¿Su hogar tiene acceso a internet?",
+        tipo_pregunta: "binaria",
+        valor: p04
+    },
+    {
+        pregunta_id: "P05",
+        enunciado: "¿Cuál es su principal preocupación en su municipio?",
+        tipo_pregunta: "texto",
+        valor: p05
+    }
+    ];
 
   const payload = {
     encuestado: {
@@ -712,18 +943,22 @@ async function registrarEncuesta() {
     });
     const data = await r.json();
     if (r.status === 201) {
-      alert.className = "alert alert-success visible";
-      alert.innerHTML = `✅ Encuesta registrada correctamente. ID: <code style="font-size:11px">${data.id}</code>`;
+      alertDiv.className = "alert alert-success visible";
+      alertDiv.innerHTML = `✅ Encuesta registrada correctamente. ID: <code style="font-size:11px">${data.id}</code>`;
+      alertDiv.scrollIntoView({ behavior: "smooth", block: "center" });
       cargarEstadisticas();
       cargarEncuestas();
+      cargarEstadisticasRespuestas();
     } else {
       const errores = data.errores?.map(e => `<li><b>${e.campo}</b>: ${e.mensaje}</li>`).join("") || "";
-      alert.className = "alert alert-error visible";
-      alert.innerHTML = `❌ Error de validación:<ul style="margin-top:6px;padding-left:16px">${errores}</ul>`;
+      alertDiv.className = "alert alert-error visible";
+      alertDiv.innerHTML = `❌ Error de validación:<ul style="margin-top:6px;padding-left:16px">${errores}</ul>`;
+      alertDiv.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   } catch(e) {
-    alert.className = "alert alert-error visible";
-    alert.innerHTML = "❌ No se pudo conectar con la API.";
+    alertDiv.className = "alert alert-error visible";
+    alertDiv.innerHTML = "❌ No se pudo conectar con la API.";
+    alertDiv.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 }
 
@@ -769,6 +1004,53 @@ async function eliminarEncuesta(id) {
   cargarEstadisticas();
   cargarEncuestas();
 }
+async function cargarEstadisticasRespuestas() {
+  try {
+    const r = await fetch(`${API}/encuestas/estadisticas/respuestas/`);
+    const d = await r.json();
+
+    // P01
+    const p01 = d.p01_promedio_satisfaccion;
+    document.getElementById("bar-p01").style.width = `${(p01/5)*100}%`;
+    document.getElementById("bar-p01").textContent = p01;
+    document.getElementById("val-p01").textContent = `${p01} / 5`;
+
+    // P02
+    const p02 = d.p02_promedio_calidad_vida;
+    document.getElementById("bar-p02").style.width = `${(p02/5)*100}%`;
+    document.getElementById("bar-p02").textContent = p02;
+    document.getElementById("val-p02").textContent = `${p02} / 5`;
+
+    // P03
+    const p03 = d.p03_promedio_gasto_alimentacion;
+    document.getElementById("bar-p03").style.width = `${p03}%`;
+    document.getElementById("bar-p03").textContent = `${p03}%`;
+    document.getElementById("val-p03").textContent = `${p03}%`;
+
+    // P04
+    document.getElementById("val-p04-si").textContent = d.p04_acceso_internet.si;
+    document.getElementById("val-p04-no").textContent = d.p04_acceso_internet.no;
+
+    // P05
+    const p05div = document.getElementById("chart-p05");
+    const p05data = d.p05_preocupaciones;
+    if (Object.keys(p05data).length === 0) {
+      p05div.innerHTML = `<div style="text-align:center;color:var(--gris-400);font-size:12px">Sin datos aún</div>`;
+    } else {
+      const max = Math.max(...Object.values(p05data));
+      p05div.innerHTML = Object.entries(p05data).map(([k,v]) => `
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <div style="width:100px;color:var(--gris-700);text-overflow:ellipsis;overflow:hidden;white-space:nowrap">${k}</div>
+          <div style="flex:1;background:var(--gris-100);border-radius:4px;height:18px;overflow:hidden">
+            <div style="height:100%;background:#d97706;border-radius:4px;width:${(v/max)*100}%"></div>
+          </div>
+          <div style="width:20px;color:var(--gris-400)">${v}</div>
+        </div>`).join("");
+    }
+  } catch(e) {}
+}
+
+
 
 // ── Cargar estadísticas ───────────────────────────────────────────────────
 async function cargarEstadisticas() {
@@ -829,36 +1111,54 @@ async function cargarEncuestas() {
       return;
     }
     div.innerHTML = `
-      <table>
-        <thead>
-          <tr>
-            <th>Nombre</th><th>Depto.</th><th>Edad</th>
-            <th>Estrato</th><th>Nivel educativo</th><th>Fuente</th><th>Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.map(e => `
+        <table>
+            <thead>
             <tr>
-              <td><b>${e.encuestado.nombre}</b></td>
-              <td>${e.encuestado.departamento}</td>
-              <td>${e.encuestado.edad}</td>
-              <td><span class="badge badge-azul">E${e.encuestado.estrato}</span></td>
-              <td><span class="badge badge-gris">${e.encuestado.nivel_educativo || "—"}</span></td>
-              <td>${e.fuente || "—"}</td>
-              <td>
-                <button class="btn btn-danger btn-sm" onclick="eliminarEncuesta('${e.id}')">🗑</button>
-              </td>
-            </tr>`).join("")}
-        </tbody>
-      </table>`;
-  } catch(e) {
-    div.innerHTML = `<div class="empty">Error cargando encuestas.</div>`;
-  }
+                <th>Nombre</th><th>Depto.</th><th>Edad</th>
+                <th>Estrato</th><th>Nivel educativo</th><th>Fuente</th>
+                <th>ID</th><th>Acción</th>
+            </tr>
+            </thead>
+            <tbody>
+            ${data.map(e => `
+                <tr>
+                <td><b>${e.encuestado.nombre}</b></td>
+                <td>${e.encuestado.departamento}</td>
+                <td>${e.encuestado.edad}</td>
+                <td><span class="badge badge-azul">E${e.encuestado.estrato}</span></td>
+                <td><span class="badge badge-gris">${e.encuestado.nivel_educativo || "—"}</span></td>
+                <td>${e.fuente || "—"}</td>
+                <td>
+                    <span 
+                    style="font-size:11px;color:var(--primario);cursor:pointer;text-decoration:underline" 
+                    onclick="copiarId('${e.id}')"
+                    title="Clic para copiar y buscar"
+                    >
+                    ${e.id.substring(0,8)}...
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-danger btn-sm" onclick="eliminarEncuesta('${e.id}')">🗑</button>
+                </td>
+                </tr>`).join("")}
+            </tbody>
+        </table>`;
+    } catch(e) {
+        div.innerHTML = `<div class="empty">Error cargando encuestas.</div>`;
+    }
+    }
+
+    function copiarId(id) {
+    document.getElementById("buscar-id").value = id;
+    buscarPorId();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+
 }
 
 // Cargar al iniciar
 cargarEstadisticas();
 cargarEncuestas();
+cargarEstadisticasRespuestas();
 </script>
 </body>
 </html>
