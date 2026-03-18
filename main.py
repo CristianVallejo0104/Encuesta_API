@@ -957,7 +957,10 @@ async function buscarPorId() {
         <div style="margin-top:10px;color:var(--gris-400);font-size:11px">
           ID: ${d.id} · Registrado: ${new Date(d.registrado_en).toLocaleString("es-CO")}
         </div>
-        <button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="eliminarEncuesta('${d.id}')">🗑 Eliminar esta encuesta</button>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-danger btn-sm" onclick="eliminarEncuesta('${d.id}')">🗑 Eliminar</button>
+          <button class="btn btn-outline btn-sm" onclick="cargarParaEditar('${d.id}')">✏ Editar</button>
+        </div>
       </div>`;
   } catch(e) {
     div.innerHTML = `<div class="alert alert-error visible">❌ Error conectando con la API.</div>`;
@@ -972,6 +975,107 @@ async function eliminarEncuesta(id) {
     `<div class="alert alert-info visible">🗑 Encuesta eliminada correctamente.</div>`;
   cargarEstadisticas();
   cargarEncuestas();
+}
+async function cargarParaEditar(id) {
+  try {
+    const r = await fetch(`${API}/encuestas/${id}`);
+    const d = await r.json();
+
+    // Rellenar formulario con datos existentes
+    document.getElementById("f-nombre").value = d.encuestado.nombre;
+    document.getElementById("f-edad").value = d.encuestado.edad;
+    document.getElementById("f-sexo").value = d.encuestado.sexo;
+    document.getElementById("f-estrato").value = d.encuestado.estrato;
+    document.getElementById("f-departamento").value = d.encuestado.departamento;
+    document.getElementById("f-area").value = d.encuestado.area;
+    document.getElementById("f-nivel").value = d.encuestado.nivel_educativo;
+    document.getElementById("f-salud").value = d.encuestado.afiliado_salud ? "true" : "false";
+
+    // Rellenar respuestas si existen
+    const resp = d.respuestas;
+    resp.forEach(r => {
+      const el = document.getElementById(`p0${r.pregunta_id.slice(-1)}-valor`);
+      if (el) el.value = r.valor;
+    });
+
+    // Cambiar botón a modo edición
+    const btn = document.querySelector("button[onclick='registrarEncuesta()']");
+    btn.textContent = "✏ Actualizar encuesta";
+    btn.onclick = () => actualizarEncuesta(id);
+
+    // Scroll al formulario
+    document.querySelector(".card").scrollIntoView({ behavior: "smooth" });
+
+    document.getElementById("resultado-busqueda").innerHTML =
+      `<div class="alert alert-info visible">✏ Editando encuesta. Modifica los datos y da clic en "Actualizar encuesta".</div>`;
+
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+async function actualizarEncuesta(id) {
+  const alertDiv = document.getElementById("alert-registro");
+  alertDiv.className = "alert";
+
+  const p01 = document.getElementById("p01-valor").value;
+  const p02 = document.getElementById("p02-valor").value;
+  const p03 = document.getElementById("p03-valor").value;
+  const p04 = document.getElementById("p04-valor").value;
+  const p05 = document.getElementById("p05-valor").value;
+
+  const payload = {
+    encuestado: {
+      nombre: document.getElementById("f-nombre").value,
+      edad: parseInt(document.getElementById("f-edad").value),
+      sexo: document.getElementById("f-sexo").value,
+      estrato: parseInt(document.getElementById("f-estrato").value),
+      departamento: document.getElementById("f-departamento").value,
+      area: document.getElementById("f-area").value,
+      nivel_educativo: document.getElementById("f-nivel").value,
+      afiliado_salud: document.getElementById("f-salud").value === "true"
+    },
+    respuestas: [
+      { pregunta_id: "P01", enunciado: "¿Qué tan satisfecho está con los servicios públicos?", tipo_pregunta: "likert", valor: parseInt(p01) },
+      { pregunta_id: "P02", enunciado: "¿Cómo califica su calidad de vida?", tipo_pregunta: "likert", valor: parseInt(p02) },
+      { pregunta_id: "P03", enunciado: "¿Qué porcentaje destina a alimentación?", tipo_pregunta: "porcentaje", valor: parseFloat(p03) },
+      { pregunta_id: "P04", enunciado: "¿Acceso a internet?", tipo_pregunta: "binaria", valor: p04 },
+      { pregunta_id: "P05", enunciado: "¿Principal preocupación?", tipo_pregunta: "texto", valor: p05 }
+    ],
+    fuente: "Interfaz-Web"
+  };
+
+  try {
+    const r = await fetch(`${API}/encuestas/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+
+    if (r.status === 200) {
+      alertDiv.className = "alert alert-success visible";
+      alertDiv.innerHTML = `✅ Encuesta actualizada correctamente.`;
+      alertDiv.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      // Restaurar botón a modo registro
+      const btn = document.querySelector("button[onclick]");
+      btn.textContent = "Registrar encuesta";
+      btn.onclick = registrarEncuesta;
+
+      cargarEstadisticas();
+      cargarEncuestas();
+      cargarEstadisticasRespuestas();
+    } else {
+      const errores = data.errores?.map(e => `<li><b>${e.campo}</b>: ${e.mensaje}</li>`).join("") || "";
+      alertDiv.className = "alert alert-error visible";
+      alertDiv.innerHTML = `❌ Error:<ul style="margin-top:6px;padding-left:16px">${errores}</ul>`;
+      alertDiv.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  } catch(e) {
+    alertDiv.className = "alert alert-error visible";
+    alertDiv.innerHTML = "❌ No se pudo conectar con la API.";
+  }
 }
 async function cargarEstadisticasRespuestas() {
   try {
