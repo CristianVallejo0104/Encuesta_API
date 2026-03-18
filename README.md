@@ -4,7 +4,7 @@ API REST construida con FastAPI que simula un sistema de recolección
 y validación de datos demográficos basado en la Gran Encuesta Integrada
 de Hogares (GEIH) Diciembre 2024 del DANE.
 ## Autor
-Natalia Gonzales - Cristian Vallejo  — USTA 2026
+Natalia Gonzalez - Cristian Vallejo  — USTA 2026
 ## Instalación
 ```bash
 # 1. Clonar el repositorio

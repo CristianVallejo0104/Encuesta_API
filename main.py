@@ -45,7 +45,7 @@ app = FastAPI(
         "**Validaciones:** edad (0-120), estrato DANE (1-6), "
         "32 departamentos DIVIPOLA, escala Likert (1-5), porcentajes (0-100)."
     ),
-    version="1.0.0",
+    version="1.1.6",
     openapi_tags=[
         {"name": "Encuestas", "description": "Operaciones CRUD sobre encuestas."},
         {"name": "Estadísticas", "description": "Resumen estadístico del repositorio."},
@@ -509,7 +509,7 @@ async def raiz():
       <div class="header-sub">GEIH — DANE Diciembre 2024</div>
     </div>
   </div>
-  <span class="badge-api">API v1.0.0</span>
+  <span class="badge-api">API v1.1.6</span>
 </header>
 
 <div class="container">
@@ -540,7 +540,7 @@ async def raiz():
 
   <div class="grid">
 
-    <!-- REGISTRAR ENCUESTA -->
+   <!-- REGISTRAR ENCUESTA -->
     <div class="card">
       <div class="card-header">
         <span>📝</span>
@@ -620,92 +620,60 @@ async def raiz():
         </div>
 
         <div style="margin:16px 0 8px">
-            <label style="font-size:13px;font-weight:600;color:var(--gris-900)">
-                Respuestas de la encuesta — GEIH 2024
-            </label>
-            <p style="font-size:11px;color:var(--gris-400);margin-top:3px">
-                Preguntas basadas en variables reales de la Gran Encuesta Integrada de Hogares — DANE
-            </p>
-            </div>
+          <label style="font-size:13px;font-weight:600;color:var(--gris-900)">
+            Respuestas de la encuesta — GEIH 2024
+          </label>
+          <p style="font-size:11px;color:var(--gris-400);margin-top:3px">
+            Preguntas basadas en variables reales de la Gran Encuesta Integrada de Hogares — DANE
+          </p>
+        </div>
 
-            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+          <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
+            <span style="font-size:11px;font-weight:600;color:var(--primario);background:#eff6ff;padding:2px 8px;border-radius:4px">P01 — Likert (1 a 5)</span>
+            <label style="font-size:12px;color:var(--gris-700);margin:8px 0 6px;display:block">¿Qué tan satisfecho está con los servicios públicos de su municipio?</label>
+            <select id="p01-valor" style="width:100%;font-size:13px">
+              <option value="">— Seleccione —</option>
+              <option value="1">1 — Muy insatisfecho</option>
+              <option value="2">2 — Insatisfecho</option>
+              <option value="3">3 — Neutral</option>
+              <option value="4">4 — Satisfecho</option>
+              <option value="5">5 — Muy satisfecho</option>
+            </select>
+          </div>
+          <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
+            <span style="font-size:11px;font-weight:600;color:var(--primario);background:#eff6ff;padding:2px 8px;border-radius:4px">P02 — Likert (1 a 5)</span>
+            <label style="font-size:12px;color:var(--gris-700);margin:8px 0 6px;display:block">¿Cómo califica su calidad de vida en el último año?</label>
+            <select id="p02-valor" style="width:100%;font-size:13px">
+              <option value="">— Seleccione —</option>
+              <option value="1">1 — Muy mala</option>
+              <option value="2">2 — Mala</option>
+              <option value="3">3 — Regular</option>
+              <option value="4">4 — Buena</option>
+              <option value="5">5 — Muy buena</option>
+            </select>
+          </div>
+          <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
+            <span style="font-size:11px;font-weight:600;color:#15803d;background:#dcfce7;padding:2px 8px;border-radius:4px">P03 — Porcentaje (0 a 100)</span>
+            <label style="font-size:12px;color:var(--gris-700);margin:8px 0 6px;display:block">¿Qué porcentaje de sus ingresos destina a alimentación?</label>
+            <input type="number" id="p03-valor" placeholder="Ej: 45.5" min="0" max="100" step="0.1" style="width:100%;font-size:13px">
+          </div>
+          <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
+            <span style="font-size:11px;font-weight:600;color:#d97706;background:#fef3c7;padding:2px 8px;border-radius:4px">P04 — Binaria (si / no)</span>
+            <label style="font-size:12px;color:var(--gris-700);margin:8px 0 6px;display:block">¿Su hogar tiene acceso a internet?</label>
+            <select id="p04-valor" style="width:100%;font-size:13px">
+              <option value="">— Seleccione —</option>
+              <option value="si">Sí</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
+            <span style="font-size:11px;font-weight:600;color:#7c3aed;background:#ede9fe;padding:2px 8px;border-radius:4px">P05 — Texto libre</span>
+            <label style="font-size:12px;color:var(--gris-700);margin:8px 0 6px;display:block">¿Cuál es su principal preocupación en su municipio?</label>
+            <input type="text" id="p05-valor" placeholder="Ej: Falta de empleo, inseguridad..." style="width:100%;font-size:13px">
+          </div>
+        </div>
 
-            <!-- P01 -->
-            <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                <span style="font-size:11px;font-weight:600;color:var(--primario);background:#eff6ff;padding:2px 8px;border-radius:4px">P01 — Likert (1 a 5)</span>
-                </div>
-                <label style="font-size:12px;color:var(--gris-700);margin-bottom:6px;display:block">
-                ¿Qué tan satisfecho está con los servicios públicos de su municipio?
-                </label>
-                <div style="display:flex;gap:8px;align-items:center">
-                <select id="p01-valor" style="flex:1;font-size:13px">
-                    <option value="">— Seleccione —</option>
-                    <option value="1">1 — Muy insatisfecho</option>
-                    <option value="2">2 — Insatisfecho</option>
-                    <option value="3">3 — Neutral</option>
-                    <option value="4">4 — Satisfecho</option>
-                    <option value="5">5 — Muy satisfecho</option>
-                </select>
-                </div>
-            </div>
-
-            <!-- P02 -->
-            <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                <span style="font-size:11px;font-weight:600;color:var(--primario);background:#eff6ff;padding:2px 8px;border-radius:4px">P02 — Likert (1 a 5)</span>
-                </div>
-                <label style="font-size:12px;color:var(--gris-700);margin-bottom:6px;display:block">
-                ¿Cómo califica su calidad de vida en el último año?
-                </label>
-                <select id="p02-valor" style="width:100%;font-size:13px">
-                <option value="">— Seleccione —</option>
-                <option value="1">1 — Muy mala</option>
-                <option value="2">2 — Mala</option>
-                <option value="3">3 — Regular</option>
-                <option value="4">4 — Buena</option>
-                <option value="5">5 — Muy buena</option>
-                </select>
-            </div>
-
-            <!-- P03 -->
-            <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                <span style="font-size:11px;font-weight:600;color:#15803d;background:#dcfce7;padding:2px 8px;border-radius:4px">P03 — Porcentaje (0 a 100)</span>
-                </div>
-                <label style="font-size:12px;color:var(--gris-700);margin-bottom:6px;display:block">
-                ¿Qué porcentaje de sus ingresos destina a alimentación?
-                </label>
-                <input type="number" id="p03-valor" placeholder="Ej: 45.5" min="0" max="100" step="0.1" style="width:100%;font-size:13px">
-            </div>
-
-            <!-- P04 -->
-            <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                <span style="font-size:11px;font-weight:600;color:#d97706;background:#fef3c7;padding:2px 8px;border-radius:4px">P04 — Binaria (si / no)</span>
-                </div>
-                <label style="font-size:12px;color:var(--gris-700);margin-bottom:6px;display:block">
-                ¿Su hogar tiene acceso a internet?
-                </label>
-                <select id="p04-valor" style="width:100%;font-size:13px">
-                <option value="">— Seleccione —</option>
-                <option value="si">Sí</option>
-                <option value="no">No</option>
-                </select>
-            </div>
-
-            <!-- P05 -->
-            <div style="background:var(--gris-100);border:1px solid var(--borde);border-radius:8px;padding:12px 14px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                <span style="font-size:11px;font-weight:600;color:#7c3aed;background:#ede9fe;padding:2px 8px;border-radius:4px">P05 — Texto libre</span>
-                </div>
-                <label style="font-size:12px;color:var(--gris-700);margin-bottom:6px;display:block">
-                ¿Cuál es su principal preocupación en su municipio?
-                </label>
-                <input type="text" id="p05-valor" placeholder="Ej: Falta de empleo, inseguridad..." style="width:100%;font-size:13px">
-            </div>
-
-</div>
         <div class="alert" id="alert-registro"></div>
         <button class="btn btn-primary" style="width:100%" onclick="registrarEncuesta()">
           Registrar encuesta
@@ -713,119 +681,121 @@ async def raiz():
       </div>
     </div>
 
-    <!-- BUSCAR POR ID -->
-    <div class="card">
-      <div class="card-header">
-        <span>🔍</span>
-        <h2>Buscar encuesta por ID</h2>
-      </div>
-      <div class="card-body">
-        <div class="search-box">
-          <input type="text" id="buscar-id" placeholder="UUID de la encuesta...">
-          <button class="btn btn-primary" onclick="buscarPorId()">Buscar</button>
+    <!-- COLUMNA DERECHA -->
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- BUSCAR POR ID -->
+      <div class="card">
+        <div class="card-header">
+          <span>🔍</span>
+          <h2>Buscar encuesta por ID</h2>
         </div>
-        <div id="resultado-busqueda"></div>
+        <div class="card-body">
+          <div class="search-box">
+            <input type="text" id="buscar-id" placeholder="UUID de la encuesta...">
+            <button class="btn btn-primary" onclick="buscarPorId()">Buscar</button>
+          </div>
+          <div id="resultado-busqueda"></div>
+        </div>
       </div>
 
-      <!-- ESTADÍSTICAS -->
-      <div class="card-header" style="margin-top:8px">
-        <span>📈</span>
-        <h2>Distribución por estrato</h2>
-      </div>
-      <div class="card-body">
-        <div class="chart-container" id="chart-estrato">
-          <div class="empty"><div class="empty-icon">📊</div><div>Sin datos aún</div></div>
+      <!-- DISTRIBUCIÓN ESTRATO -->
+      <div class="card">
+        <div class="card-header">
+          <span>📈</span>
+          <h2>Distribución por estrato</h2>
+        </div>
+        <div class="card-body">
+          <div class="chart-container" id="chart-estrato">
+            <div class="empty"><div class="empty-icon">📊</div><div>Sin datos aún</div></div>
+          </div>
         </div>
       </div>
+
+      <!-- TOP DEPARTAMENTOS -->
+      <div class="card">
+        <div class="card-header">
+          <span>🗺️</span>
+          <h2>Top departamentos</h2>
+        </div>
+        <div class="card-body">
+          <div class="chart-container" id="chart-depto">
+            <div class="empty"><div class="empty-icon">📊</div><div>Sin datos aún</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ESTADÍSTICAS DE RESPUESTAS — FILA COMPLETA -->
+    <div class="card full">
       <div class="card-header">
-        <span>🗺️</span>
-        <h2>Top departamentos</h2>
+        <span>📊</span>
+        <h2>Estadísticas de respuestas — GEIH 2024</h2>
       </div>
       <div class="card-body">
-        <div class="chart-container" id="chart-depto">
-          <div class="empty"><div class="empty-icon">📊</div><div>Sin datos aún</div></div>
+        <p style="font-size:11px;color:var(--gris-400);margin-bottom:16px">
+          Basado en preguntas reales de la Gran Encuesta Integrada de Hogares — DANE
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+          <div>
+            <div style="margin-bottom:14px">
+              <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:4px">P01 — Satisfacción con servicios públicos</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="flex:1;background:var(--gris-100);border-radius:4px;height:22px;overflow:hidden">
+                  <div id="bar-p01" style="height:100%;background:var(--primario);border-radius:4px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:600;transition:width 0.5s;width:0%">0</div>
+                </div>
+                <span id="val-p01" style="font-size:12px;color:var(--gris-400);width:60px">— / 5</span>
+              </div>
+            </div>
+            <div style="margin-bottom:14px">
+              <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:4px">P02 — Calidad de vida</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="flex:1;background:var(--gris-100);border-radius:4px;height:22px;overflow:hidden">
+                  <div id="bar-p02" style="height:100%;background:#7c3aed;border-radius:4px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:600;transition:width 0.5s;width:0%">0</div>
+                </div>
+                <span id="val-p02" style="font-size:12px;color:var(--gris-400);width:60px">— / 5</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:4px">P03 — Gasto en alimentación (% promedio)</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="flex:1;background:var(--gris-100);border-radius:4px;height:22px;overflow:hidden">
+                  <div id="bar-p03" style="height:100%;background:#16a34a;border-radius:4px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:600;transition:width 0.5s;width:0%">0%</div>
+                </div>
+                <span id="val-p03" style="font-size:12px;color:var(--gris-400);width:60px">—%</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style="margin-bottom:14px">
+              <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:6px">P04 — Acceso a internet</div>
+              <div style="display:flex;gap:10px">
+                <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;text-align:center">
+                  <div id="val-p04-si" style="font-size:20px;font-weight:700;color:#15803d">—</div>
+                  <div style="font-size:11px;color:#15803d">Sí tienen</div>
+                </div>
+                <div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;text-align:center">
+                  <div id="val-p04-no" style="font-size:20px;font-weight:700;color:#dc2626">—</div>
+                  <div style="font-size:11px;color:#dc2626">No tienen</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:6px">P05 — Principales preocupaciones</div>
+              <div id="chart-p05" style="display:flex;flex-direction:column;gap:4px">
+                <div style="text-align:center;color:var(--gris-400);font-size:12px">Sin datos aún</div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
-    <div class="card-header">
-        <span>📊</span>
-        <h2>Estadísticas de respuestas</h2>
-      </div>
-      <div class="card-body">
 
-        <p style="font-size:11px;color:var(--gris-400);margin-bottom:12px">
-          Basado en preguntas GEIH 2024 — DANE
-        </p>
-
-        <!-- P01 -->
-        <div style="margin-bottom:14px">
-          <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:4px">
-            P01 — Satisfacción con servicios públicos
-          </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="flex:1;background:var(--gris-100);border-radius:4px;height:22px;overflow:hidden">
-              <div id="bar-p01" style="height:100%;background:var(--primario);border-radius:4px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:600;transition:width 0.5s;min-width:30px;width:0%">0</div>
-            </div>
-            <span id="val-p01" style="font-size:12px;color:var(--gris-400);width:60px">— / 5</span>
-          </div>
-        </div>
-
-        <!-- P02 -->
-        <div style="margin-bottom:14px">
-          <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:4px">
-            P02 — Calidad de vida
-          </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="flex:1;background:var(--gris-100);border-radius:4px;height:22px;overflow:hidden">
-              <div id="bar-p02" style="height:100%;background:#7c3aed;border-radius:4px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:600;transition:width 0.5s;min-width:30px;width:0%">0</div>
-            </div>
-            <span id="val-p02" style="font-size:12px;color:var(--gris-400);width:60px">— / 5</span>
-          </div>
-        </div>
-
-        <!-- P03 -->
-        <div style="margin-bottom:14px">
-          <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:4px">
-            P03 — Gasto en alimentación (% promedio)
-          </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="flex:1;background:var(--gris-100);border-radius:4px;height:22px;overflow:hidden">
-              <div id="bar-p03" style="height:100%;background:#16a34a;border-radius:4px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:600;transition:width 0.5s;min-width:30px;width:0%">0%</div>
-            </div>
-            <span id="val-p03" style="font-size:12px;color:var(--gris-400);width:60px">—%</span>
-          </div>
-        </div>
-
-        <!-- P04 -->
-        <div style="margin-bottom:14px">
-          <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:6px">
-            P04 — Acceso a internet
-          </div>
-          <div style="display:flex;gap:10px">
-            <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;text-align:center">
-              <div id="val-p04-si" style="font-size:20px;font-weight:700;color:#15803d">—</div>
-              <div style="font-size:11px;color:#15803d">Sí tienen</div>
-            </div>
-            <div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;text-align:center">
-              <div id="val-p04-no" style="font-size:20px;font-weight:700;color:#dc2626">—</div>
-              <div style="font-size:11px;color:#dc2626">No tienen</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- P05 -->
-        <div>
-          <div style="font-size:12px;font-weight:600;color:var(--gris-700);margin-bottom:6px">
-            P05 — Principales preocupaciones
-          </div>
-          <div id="chart-p05" style="display:flex;flex-direction:column;gap:4px">
-            <div style="text-align:center;color:var(--gris-400);font-size:12px">Sin datos aún</div>
-          </div>
-        </div>
-
-      </div>
-
-    <!-- TODAS LAS ENCUESTAS -->
+    <!-- TABLA ENCUESTAS — FILA COMPLETA -->
     <div class="card full">
       <div class="card-header">
         <span>📋</span>
@@ -837,7 +807,6 @@ async def raiz():
           <div class="empty"><div class="empty-icon">📋</div><div>No hay encuestas registradas aún</div></div>
         </div>
       </div>
-    </div>
 
   </div>
 </div>
