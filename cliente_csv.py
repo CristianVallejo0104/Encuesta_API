@@ -12,7 +12,7 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-API = "http://127.0.0.1:8000"
+API = "https://encuesta-api-vhq1.onrender.com"
 CSV_PATH = "datos/geih_diciembre_2024_limpio.csv"
 MAX_REGISTROS = 20  # Cambiar a None para cargar todos
 
