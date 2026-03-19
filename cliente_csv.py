@@ -10,7 +10,10 @@ Uso:
 
 import requests
 import pandas as pd
+import random
 from datetime import datetime
+ 
+
 
 API = "https://encuesta-api-vhq1.onrender.com"
 CSV_PATH = "datos/geih_diciembre_2024_limpio.csv"
@@ -18,7 +21,7 @@ MAX_REGISTROS = 20  # Cambiar a None para cargar todos
 
 
 def construir_payload(fila: pd.Series) -> dict:
-    """Transforma una fila del CSV en el JSON esperado por la API."""
+    """Transforma una fila del CSV en el JSON esperado por la API con respuestas simuladas."""
     return {
         "encuestado": {
             "nombre": f"Encuestado GEIH {fila['DIRECTORIO']}",
@@ -33,12 +36,35 @@ def construir_payload(fila: pd.Series) -> dict:
         "respuestas": [
             {
                 "pregunta_id": "P01",
-                "enunciado": "¿Afiliado a seguridad social en salud?",
-                "tipo_pregunta": "binaria",
-                "valor": "si" if fila["afiliado_salud"] == 1 else "no",
+                "enunciado": "Nivel de satisfacción general",
+                "tipo": "likert",
+                "valor": random.randint(1, 5)  # Genera un valor aleatorio de 1 a 5
+            },
+            {
+                "pregunta_id": "P02",
+                "enunciado": "Percepción de calidad de vida",
+                "tipo": "porcentaje",
+                "valor": round(random.uniform(40.0, 100.0), 1)  # Porcentaje aleatorio
+            },
+            {
+                "pregunta_id": "P03",
+                "enunciado": "Gasto en alimentación",
+                "tipo": "porcentaje",
+                "valor": round(random.uniform(10.0, 60.0), 1)
+            },
+            {
+                "pregunta_id": "P04",
+                "enunciado": "Acceso a internet fijo",
+                "tipo": "binaria",
+                "valor": random.choice(["si", "no"])  # Elige sí o no al azar
+            },
+            {
+                "pregunta_id": "P05",
+                "enunciado": "Principal preocupación",
+                "tipo": "texto",
+                "valor": random.choice(["Economía", "Seguridad", "Salud", "Educación", "Empleo"])
             }
-        ],
-        "fuente": "GEIH-Diciembre-2024",
+        ]
     }
 
 
