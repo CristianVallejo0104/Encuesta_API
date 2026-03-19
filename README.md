@@ -57,12 +57,13 @@ uvicorn main:app --reload
 |-------|------|-------------|--------|
 | POST | /encuestas/ | Registrar encuesta | 201 |
 | GET | /encuestas/ | Listar todas | 200 |
+| GET | /encuestas/estadisticas/ | Resumen estadístico demográfico | 200 |
+| GET | /encuestas/estadisticas/respuestas/ | Estadísticas de respuestas | 200 |
+| GET | /encuestas/exportar/json | Exportar encuestas en JSON | 200 |
+| GET | /encuestas/exportar/pickle | Exportar encuestas en Pickle | 200 |
 | GET | /encuestas/{id} | Obtener por ID | 200 / 404 |
 | PUT | /encuestas/{id} | Actualizar | 200 / 404 |
 | DELETE | /encuestas/{id} | Eliminar | 204 / 404 |
-| GET | /encuestas/estadisticas/ | Resumen estadístico demográfico | 200 |
-| GET | /encuestas/estadisticas/respuestas/ | Estadísticas de respuestas | 200 |
-
 ---
 
 ## Validaciones
