@@ -42,9 +42,10 @@ class TestRaiz:
         r = client.get("/")
         assert r.status_code == 200
 
-    def test_raiz_contiene_version(self):
+    def test_raiz_retorna_html(self):
         r = client.get("/")
-        assert r.json()["version"] == "1.0.0"
+        assert "text/html" in r.headers["content-type"]
+        assert "GEIH" in r.text
 
 
 # ── Tests POST /encuestas/ ────────────────────────────────────────────────

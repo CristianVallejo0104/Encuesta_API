@@ -9,6 +9,9 @@ Redoc       : http://127.0.0.1:8000/redoc
 import time
 import logging
 import functools
+import pickle
+import json
+import base64
 from collections import Counter
 from datetime import datetime
 from typing import List
@@ -208,6 +211,56 @@ async def obtener_estadisticas() -> EstadisticasResponse:
         promedio_respuestas_por_encuesta=round(sum(len(e.respuestas) for e in encuestas) / n, 2),
     )
 
+# ── GET /encuestas/estadisticas/respuestas/ ──────────────────────────────
+@app.get(
+    "/encuestas/estadisticas/respuestas/",
+    summary="Estadísticas de respuestas",
+    description="Calcula estadísticas descriptivas de las respuestas de la encuesta.",
+    tags=["Estadísticas"]
+)
+@log_request
+async def estadisticas_respuestas():
+    encuestas = list(db_encuestas.values())
+
+    if not encuestas:
+        return {
+            "p01_promedio_satisfaccion": 0,
+            "p02_promedio_calidad_vida": 0,
+            "p03_promedio_gasto_alimentacion": 0,
+            "p04_acceso_internet": {"si": 0, "no": 0},
+            "p05_preocupaciones": {}
+        }
+
+    p01_vals, p02_vals, p03_vals, p04_vals, p05_vals = [], [], [], [], []
+
+    for enc in encuestas:
+        for resp in enc.respuestas:
+            if resp.pregunta_id == "P01":
+                p01_vals.append(float(resp.valor))
+            elif resp.pregunta_id == "P02":
+                p02_vals.append(float(resp.valor))
+            elif resp.pregunta_id == "P03":
+                p03_vals.append(float(resp.valor))
+            elif resp.pregunta_id == "P04":
+                p04_vals.append(str(resp.valor).lower())
+            elif resp.pregunta_id == "P05":
+                p05_vals.append(str(resp.valor))
+
+    # Contar P04
+    p04_si = p04_vals.count("si") + p04_vals.count("sí")
+    p04_no = p04_vals.count("no")
+
+    # Contar P05 top 5
+    from collections import Counter
+    p05_top = dict(Counter(p05_vals).most_common(5))
+
+    return {
+        "p01_promedio_satisfaccion": round(sum(p01_vals)/len(p01_vals), 2) if p01_vals else 0,
+        "p02_promedio_calidad_vida": round(sum(p02_vals)/len(p02_vals), 2) if p02_vals else 0,
+        "p03_promedio_gasto_alimentacion": round(sum(p03_vals)/len(p03_vals), 2) if p03_vals else 0,
+        "p04_acceso_internet": {"si": p04_si, "no": p04_no},
+        "p05_preocupaciones": p05_top
+    }
 
 # ── GET /encuestas/{id} ──────────────────────────────────────────────────────
 @app.get(
@@ -271,55 +324,69 @@ async def eliminar_encuesta(encuesta_id: str) -> None:
     del db_encuestas[encuesta_id]
     logger.info(f"🗑 Encuesta eliminada | ID: {encuesta_id}")
 
-# ── GET /encuestas/estadisticas/respuestas/ ──────────────────────────────
+
+# ── GET /encuestas/exportar/json ─────────────────────────────────────────────
 @app.get(
-    "/encuestas/estadisticas/respuestas/",
-    summary="Estadísticas de respuestas",
-    description="Calcula estadísticas descriptivas de las respuestas de la encuesta.",
+    "/encuestas/exportar/json",
+    summary="Exportar encuestas en formato JSON",
+    description="""
+    Exporta todas las encuestas almacenadas en formato JSON.
+    JSON es legible, portable y estándar universal para APIs REST.
+    """,
     tags=["Estadísticas"]
 )
 @log_request
-async def estadisticas_respuestas():
-    encuestas = list(db_encuestas.values())
-
-    if not encuestas:
-        return {
-            "p01_promedio_satisfaccion": 0,
-            "p02_promedio_calidad_vida": 0,
-            "p03_promedio_gasto_alimentacion": 0,
-            "p04_acceso_internet": {"si": 0, "no": 0},
-            "p05_preocupaciones": {}
-        }
-
-    p01_vals, p02_vals, p03_vals, p04_vals, p05_vals = [], [], [], [], []
-
-    for enc in encuestas:
-        for resp in enc.respuestas:
-            if resp.pregunta_id == "P01":
-                p01_vals.append(float(resp.valor))
-            elif resp.pregunta_id == "P02":
-                p02_vals.append(float(resp.valor))
-            elif resp.pregunta_id == "P03":
-                p03_vals.append(float(resp.valor))
-            elif resp.pregunta_id == "P04":
-                p04_vals.append(str(resp.valor).lower())
-            elif resp.pregunta_id == "P05":
-                p05_vals.append(str(resp.valor))
-
-    # Contar P04
-    p04_si = p04_vals.count("si") + p04_vals.count("sí")
-    p04_no = p04_vals.count("no")
-
-    # Contar P05 top 5
-    from collections import Counter
-    p05_top = dict(Counter(p05_vals).most_common(5))
-
+async def exportar_json():
+    encuestas = [e.model_dump() for e in db_encuestas.values()]
+    serializado = json.dumps(
+        encuestas,
+        ensure_ascii=False,
+        indent=2,
+        default=str
+    )
     return {
-        "p01_promedio_satisfaccion": round(sum(p01_vals)/len(p01_vals), 2) if p01_vals else 0,
-        "p02_promedio_calidad_vida": round(sum(p02_vals)/len(p02_vals), 2) if p02_vals else 0,
-        "p03_promedio_gasto_alimentacion": round(sum(p03_vals)/len(p03_vals), 2) if p03_vals else 0,
-        "p04_acceso_internet": {"si": p04_si, "no": p04_no},
-        "p05_preocupaciones": p05_top
+        "formato": "JSON",
+        "total_registros": len(encuestas),
+        "tamanio_bytes": len(serializado.encode("utf-8")),
+        "legible_humanos": True,
+        "interoperable": True,
+        "datos": encuestas,
+        "nota": "JSON es el estándar para APIs REST. Legible, portable y seguro."
+    }
+
+
+# ── GET /encuestas/exportar/pickle ───────────────────────────────────────────
+@app.get(
+    "/encuestas/exportar/pickle",
+    summary="Exportar encuestas en formato Pickle",
+    description="""
+    Exporta todas las encuestas en formato Pickle (binario Python).
+    Los datos se retornan codificados en Base64 para viajar en JSON.
+    Advertencia: nunca deserialices Pickle de fuentes no confiables.
+    """,
+    tags=["Estadísticas"]
+)
+@log_request
+async def exportar_pickle():
+    encuestas = list(db_encuestas.values())
+    datos_pickle = pickle.dumps(encuestas)
+    datos_base64 = base64.b64encode(datos_pickle).decode("utf-8")
+    datos_json = json.dumps([e.model_dump() for e in encuestas], default=str)
+    tamanio_json = len(datos_json.encode("utf-8"))
+    tamanio_pickle = len(datos_pickle)
+    return {
+        "formato": "Pickle",
+        "total_registros": len(encuestas),
+        "tamanio_pickle_bytes": tamanio_pickle,
+        "tamanio_json_bytes": tamanio_json,
+        "ahorro_bytes": tamanio_json - tamanio_pickle,
+        "legible_humanos": False,
+        "interoperable": False,
+        "solo_python": True,
+        "datos_base64": datos_base64,
+        "advertencia": "Nunca deserialices Pickle de fuentes no confiables.",
+        "como_deserializar": "import pickle, base64; datos = pickle.loads(base64.b64decode(datos_base64))",
+        "nota": "Pickle es útil para caché interno, nunca para APIs públicas."
     }
 
 
