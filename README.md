@@ -1,10 +1,25 @@
 # API de Encuestas Poblacionales — GEIH DANE 2024
 
-API REST construida con FastAPI que simula un sistema de recolección
-y validación de datos demográficos basado en la Gran Encuesta Integrada
-de Hogares (GEIH) Diciembre 2024 del DANE.
-## Autor
-Natalia Gonzalez - Cristian Vallejo  — USTA 2026
+API REST para recolección y validación de datos de encuestas demográficas en Colombia. Construida con **FastAPI** y **Pydantic v2**.
+
+El sistema actúa como una **aduana transaccional**: cualquier dato inválido es rechazado antes de entrar al repositorio de análisis.
+
+## Autores
+- Cristian Vallejo
+- Natalia González
+
+USTA 2026
+---
+
+## Dataset
+
+Microdatos reales de la **Gran Encuesta Integrada de Hogares (GEIH) — Diciembre 2024** del DANE.
+
+- 61,246 registros procesados
+- Variables: departamento, sexo, edad, estrato (1–6), área geográfica, nivel educativo, afiliación a salud
+
+---
+
 ## Instalación
 ```bash
 # 1. Clonar el repositorio
@@ -14,11 +29,12 @@ cd Encuesta_API
 # 2. Crear entorno virtual
 python -m venv venv
 
-# 3. Activar entorno virtual
-venv\Scripts\activate        # Windows
-source venv/bin/activate     # macOS/Linux
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
 
-# 4. Instalar dependencias
+# 3. Instalar dependencias
 pip install -r requirements.txt
 ```
 
@@ -27,43 +43,48 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-Abrir en el navegador:
-- **Swagger UI** → http://127.0.0.1:8000/docs
-- **Redoc**       → http://127.0.0.1:8000/redoc
-- **Interfaz**    → http://127.0.0.1:8000/
+| URL | Descripción |
+|-----|-------------|
+| http://127.0.0.1:8000 | Interfaz web |
+| http://127.0.0.1:8000/docs | Swagger UI |
+| http://127.0.0.1:8000/redoc | Redoc |
+
+---
 
 ## Endpoints
 
-| Verbo  | Ruta                     | Descripción                | Status  |
-|--------|--------------------------|----------------------------|---------|
-| POST   | /encuestas/              | Registrar encuesta         | 201     |
-| GET    | /encuestas/              | Listar todas las encuestas | 200     |
-| GET    | /encuestas/{id}          | Obtener encuesta por ID    | 200/404 |
-| PUT    | /encuestas/{id}          | Actualizar encuesta        | 200/404 |
-| DELETE | /encuestas/{id}          | Eliminar encuesta          | 204/404 |
-| GET    | /encuestas/estadisticas/ | Resumen estadístico        | 200     |
+| Verbo | Ruta | Descripción | Status |
+|-------|------|-------------|--------|
+| POST | /encuestas/ | Registrar encuesta | 201 |
+| GET | /encuestas/ | Listar todas | 200 |
+| GET | /encuestas/{id} | Obtener por ID | 200 / 404 |
+| PUT | /encuestas/{id} | Actualizar | 200 / 404 |
+| DELETE | /encuestas/{id} | Eliminar | 204 / 404 |
+| GET | /encuestas/estadisticas/ | Resumen estadístico demográfico | 200 |
+| GET | /encuestas/estadisticas/respuestas/ | Estadísticas de respuestas | 200 |
 
-## Dataset
+---
 
-Datos reales procesados de la GEIH Diciembre 2024 — DANE.
-- 61,246 registros limpios
-- Variables: departamento, sexo, edad, estrato (1-6), área, nivel educativo
+## Validaciones
 
-Script de procesamiento: `scripts/preparardatos.py`
+| Campo | Regla |
+|-------|-------|
+| Edad | 0 – 120 años |
+| Estrato | 1 – 6 (clasificación DANE) |
+| Departamento | Lista oficial DIVIPOLA — 32 dptos. + Bogotá D.C. |
+| Likert | 1 – 5 |
+| Porcentaje | 0.0 – 100.0 |
+| Binaria | si / no / 1 / 0 |
 
-## Tests
-```bash
-pytest tests/ -v
-```
-
-38 tests — 21 unitarios (modelos) + 17 de integración (endpoints).
+---
 
 ## Estructura
 ```
 Encuesta_api/
-├── main.py          # FastAPI + endpoints + decorador @log_request
-├── models.py        # Modelos Pydantic (Encuestado, RespuestaEncuesta, EncuestaCompleta)
-├── validators.py    # Validadores DANE (departamentos, estratos, niveles educativos)
+├── main.py              # Punto de entrada — endpoints + decorador + manejador 422
+├── models.py            # Modelos Pydantic — Encuestado, RespuestaEncuesta, EncuestaCompleta
+├── validators.py        # Listas de referencia DANE
+├── cliente_csv.py       # Script cliente — carga CSV y genera reporte con pandas
 ├── requirements.txt
 ├── README.md
 ├── datos/
@@ -75,10 +96,20 @@ Encuesta_api/
     └── test_endpoints.py
 ```
 
+## Tests
+```bash
+pytest tests/ -v
+```
+
+38 tests — 21 unitarios (modelos) + 17 de integración (endpoints).
+
 ## Tecnologías
 
-- **FastAPI** 0.133.1
-- **Pydantic** 2.12.5
-- **Pandas** 3.0.1
-- **pytest** 9.0.2
-- **Python** 3.13.12
+| Librería | Versión |
+|----------|---------|
+| FastAPI | 0.133.1 |
+| Pydantic | 2.12.5 |
+| Uvicorn | 0.41.0 |
+| Pandas | 3.0.1 |
+| pytest | 9.0.2 |
+| Python | 3.13.12 |
