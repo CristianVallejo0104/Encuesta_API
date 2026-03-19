@@ -20,6 +20,11 @@ Microdatos reales de la **Gran Encuesta Integrada de Hogares (GEIH) — Diciembr
 
 ---
 
+## Despliegue (Live Demo)
+El proyecto se encuentra desplegado y funcional en: 
+🚀 [https://encuesta-api-vhq1.onrender.com](https://encuesta-api-vhq1.onrender.com)
+
+
 ## Instalación
 ```bash
 # 1. Clonar el repositorio
