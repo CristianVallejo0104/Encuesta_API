@@ -168,15 +168,8 @@ async def crear_encuesta(encuesta: EncuestaCompleta) -> EncuestaDB:
 async def listar_encuestas() -> List[EncuestaDB]:
     return list(db_encuestas.values())
 
-
-# ── GET /encuestas/estadisticas/ ─────────────────────────────────────────────
-@app.get(
-    "/encuestas/estadisticas/",
-    response_model=EstadisticasResponse,
-    summary="Resumen estadístico",
-    description="Calcula estadísticas descriptivas de todas las encuestas registradas.",
-    tags=["Estadísticas"]
-)
+# ── GET /encuestas/estadisticas/ ──────────────────────────────────────────────────────────
+@app.get("/encuestas/estadisticas/", response_model=EstadisticasResponse, tags=["Estadísticas"])
 @log_request
 async def obtener_estadisticas() -> EstadisticasResponse:
     encuestas = list(db_encuestas.values())
@@ -189,17 +182,25 @@ async def obtener_estadisticas() -> EstadisticasResponse:
             distribucion_estrato={},
             distribucion_departamento={},
             distribucion_sexo={},
-            distribucion_nivel_educativo={},
+            nivel_educativo={},
+            afiliacion_salud={"si": 0, "no": 0},
             promedio_respuestas_por_encuesta=0.0,
         )
 
+    # 1. Cálculos de edad
     edades = sorted(e.encuestado.edad for e in encuestas)
     n = len(edades)
-    mediana = (
-        edades[n // 2] if n % 2 != 0
-        else (edades[n // 2 - 1] + edades[n // 2]) / 2
-    )
+    mediana = (edades[n // 2] if n % 2 != 0 else (edades[n // 2 - 1] + edades[n // 2]) / 2)
 
+    # 2. Conteo de Salud (¡Súper importante!)
+    salud_counts = {"si": 0, "no": 0}
+    for e in encuestas:
+        if e.encuestado.afiliado_salud:
+            salud_counts["si"] += 1
+        else:
+            salud_counts["no"] += 1
+
+    # 3. Respuesta final (Nombres exactos de tu clase)
     return EstadisticasResponse(
         total_encuestas=n,
         promedio_edad=round(sum(edades) / n, 2),
@@ -207,7 +208,8 @@ async def obtener_estadisticas() -> EstadisticasResponse:
         distribucion_estrato=dict(Counter(str(e.encuestado.estrato) for e in encuestas)),
         distribucion_departamento=dict(Counter(e.encuestado.departamento for e in encuestas)),
         distribucion_sexo=dict(Counter(e.encuestado.sexo for e in encuestas)),
-        distribucion_nivel_educativo=dict(Counter(e.encuestado.nivel_educativo or "no_especificado" for e in encuestas)),
+        nivel_educativo=dict(Counter(e.encuestado.nivel_educativo or "no_especificado" for e in encuestas)),
+        afiliacion_salud=salud_counts,
         promedio_respuestas_por_encuesta=round(sum(len(e.respuestas) for e in encuestas) / n, 2),
     )
 
@@ -581,7 +583,6 @@ async def raiz():
 
 <div class="container">
 
-  <!-- STATS TOP -->
   <div class="stats-row" id="stats-top">
     <div class="stat-card">
       <div class="label">Encuestas registradas</div>
@@ -607,8 +608,7 @@ async def raiz():
 
   <div class="grid">
 
-   <!-- REGISTRAR ENCUESTA -->
-    <div class="card">
+   <div class="card">
       <div class="card-header">
         <span>📝</span>
         <h2>Registrar encuesta</h2>
@@ -748,10 +748,8 @@ async def raiz():
       </div>
     </div>
 
-    <!-- COLUMNA DERECHA -->
     <div style="display:flex;flex-direction:column;gap:20px">
 
-      <!-- BUSCAR POR ID -->
       <div class="card">
         <div class="card-header">
           <span>🔍</span>
@@ -766,7 +764,34 @@ async def raiz():
         </div>
       </div>
 
-      <!-- DISTRIBUCIÓN ESTRATO -->
+      <div class="card">
+        <div class="card-header">
+          <span>👥</span>
+          <h2>Demografía y Salud</h2>
+        </div>
+        <div class="card-body">
+          <div style="margin-bottom:15px">
+            <label style="font-size:11px; color:var(--gris-400); text-transform:uppercase; font-weight:600;">Distribución por Sexo</label>
+            <div id="chart-sexo" class="chart-container" style="margin-top:8px"></div>
+          </div>
+          <hr style="border:0; border-top:1px solid var(--borde); margin:15px 0">
+          <div>
+            <label style="font-size:11px; color:var(--gris-400); text-transform:uppercase; font-weight:600;">Afiliación a Salud</label>
+            <div id="stat-salud" style="display:flex; gap:10px; margin-top:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span>🎓</span>
+          <h2>Nivel Educativo</h2>
+        </div>
+        <div class="card-body">
+          <div id="chart-educacion" class="chart-container"></div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <span>📈</span>
@@ -779,7 +804,6 @@ async def raiz():
         </div>
       </div>
 
-      <!-- TOP DEPARTAMENTOS -->
       <div class="card">
         <div class="card-header">
           <span>🗺️</span>
@@ -794,7 +818,6 @@ async def raiz():
 
     </div>
 
-    <!-- ESTADÍSTICAS DE RESPUESTAS — FILA COMPLETA -->
     <div class="card full">
       <div class="card-header">
         <span>📊</span>
@@ -862,7 +885,6 @@ async def raiz():
       </div>
     </div>
 
-    <!-- TABLA ENCUESTAS — FILA COMPLETA -->
     <div class="card full">
       <div class="card-header">
         <span>📋</span>
@@ -1202,6 +1224,47 @@ async function cargarEstadisticas() {
     document.getElementById("st-edad").textContent = d.promedio_edad || "—";
     document.getElementById("st-mediana").textContent = d.mediana_edad || "—";
     document.getElementById("st-resp").textContent = d.promedio_respuestas_por_encuesta || "—";
+
+    // Gráfica sexo (NUEVO)
+    const sexDiv = document.getElementById("chart-sexo");
+    const sexData = d.distribucion_sexo;
+    if (Object.keys(sexData).length === 0) {
+      sexDiv.innerHTML = `<div style="text-align:center;color:var(--gris-400);font-size:12px">Sin datos</div>`;
+    } else {
+      sexDiv.innerHTML = Object.entries(sexData).map(([k,v]) => `
+        <div class="chart-bar-row">
+          <div class="chart-bar-label">${k == 'M' ? 'Hombre' : 'Mujer'}</div>
+          <div class="chart-bar-track">
+            <div class="chart-bar-fill" style="background:#3b82f6; width:${(v/d.total_encuestas)*100}%">${v}</div>
+          </div>
+        </div>`).join("");
+    }
+
+    // Afiliación Salud (NUEVO)
+    const saludDiv = document.getElementById("stat-salud");
+    const s = d.afiliacion_salud;
+    saludDiv.innerHTML = `
+        <div style="flex:1; background:#f0fdf4; padding:10px; border-radius:8px; text-align:center; border:1px solid #bbf7d0">
+            <div style="color:#15803d; font-weight:700; font-size:18px">${s.si}</div><div style="font-size:10px; color:#15803d">Asegurados</div>
+        </div>
+        <div style="flex:1; background:#fef2f2; padding:10px; border-radius:8px; text-align:center; border:1px solid #fecaca">
+            <div style="color:#dc2626; font-weight:700; font-size:18px">${s.no}</div><div style="font-size:10px; color:#dc2626">No Asegurados</div>
+        </div>`;
+
+    // Educación (NUEVO)
+    const eduDiv = document.getElementById("chart-educacion");
+    const eduData = d.nivel_educativo;
+    if (Object.keys(eduData).length === 0) {
+      eduDiv.innerHTML = `<div style="text-align:center;color:var(--gris-400);font-size:12px">Sin datos</div>`;
+    } else {
+      eduDiv.innerHTML = Object.entries(eduData).map(([k,v]) => `
+        <div class="chart-bar-row">
+          <div class="chart-bar-label" style="width:90px">${k}</div>
+          <div class="chart-bar-track">
+            <div class="chart-bar-fill" style="background:#64748b; width:${(v/d.total_encuestas)*100}%">${v}</div>
+          </div>
+        </div>`).join("");
+    }
 
     // Gráfica estrato
     const estDiv = document.getElementById("chart-estrato");

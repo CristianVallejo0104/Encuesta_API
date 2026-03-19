@@ -12,7 +12,7 @@ import requests
 import pandas as pd
 import random
 from datetime import datetime
- 
+from validators import DEPARTAMENTOS_COLOMBIA  # <-- Esto trae la lista original
 
 
 API = "https://encuesta-api-vhq1.onrender.com"
@@ -21,14 +21,15 @@ MAX_REGISTROS = 20  # Cambiar a None para cargar todos
 
 
 def construir_payload(fila: pd.Series) -> dict:
-    """Transforma una fila del CSV en el JSON esperado por la API con respuestas simuladas."""
+    """Transforma una fila del CSV en el JSON esperado por la API con datos dinámicos."""
+   
     return {
         "encuestado": {
             "nombre": f"Encuestado GEIH {fila['DIRECTORIO']}",
             "edad": int(fila["edad"]),
             "sexo": fila["sexo"],
-            "estrato": int(fila["estrato"]),
-            "departamento": fila["departamento"],
+            "estrato": random.randint(1,6),
+            "departamento": random.choice(DEPARTAMENTOS_COLOMBIA), # <-- ELIGE UNO AL AZAR
             "area": fila["area"],
             "nivel_educativo": fila["nivel_educativo"],
             "afiliado_salud": bool(fila["afiliado_salud"] == 1),
@@ -37,36 +38,35 @@ def construir_payload(fila: pd.Series) -> dict:
             {
                 "pregunta_id": "P01",
                 "enunciado": "Nivel de satisfacción general",
-                "tipo": "likert",
-                "valor": random.randint(1, 5)  # Genera un valor aleatorio de 1 a 5
+                "tipo_pregunta": "likert",
+                "valor": random.randint(1, 5)
             },
             {
                 "pregunta_id": "P02",
                 "enunciado": "Percepción de calidad de vida",
-                "tipo": "porcentaje",
-                "valor": round(random.uniform(40.0, 100.0), 1)  # Porcentaje aleatorio
+                "tipo_pregunta": "Likert",
+                "valor": random.randint(1,5)
             },
             {
                 "pregunta_id": "P03",
                 "enunciado": "Gasto en alimentación",
-                "tipo": "porcentaje",
+                "tipo_pregunta": "porcentaje",
                 "valor": round(random.uniform(10.0, 60.0), 1)
             },
             {
                 "pregunta_id": "P04",
                 "enunciado": "Acceso a internet fijo",
-                "tipo": "binaria",
-                "valor": random.choice(["si", "no"])  # Elige sí o no al azar
+                "tipo_pregunta": "binaria",
+                "valor": random.choice(["si", "no"])
             },
             {
                 "pregunta_id": "P05",
                 "enunciado": "Principal preocupación",
-                "tipo": "texto",
+                "tipo_pregunta": "texto",
                 "valor": random.choice(["Economía", "Seguridad", "Salud", "Educación", "Empleo"])
             }
         ]
     }
-
 
 def cargar_encuestas(df: pd.DataFrame) -> dict:
     """Envía cada fila del CSV a la API."""
@@ -80,6 +80,10 @@ def cargar_encuestas(df: pd.DataFrame) -> dict:
                 resultados["exitosos"] += 1
             else:
                 resultados["fallidos"] += 1
+                
+                # 👇 AQUÍ ESTÁ EL PRINT NUEVO PARA VER EL ERROR 👇
+                print(f"🛑 ERROR EN LA FILA {idx}: {r.text}")
+                
                 resultados["errores"].append({
                     "fila": idx,
                     "status": r.status_code,

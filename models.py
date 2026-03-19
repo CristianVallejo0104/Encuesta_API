@@ -338,7 +338,8 @@ class EstadisticasResponse(BaseModel):
     distribucion_estrato: dict
     distribucion_departamento: dict
     distribucion_sexo: dict
-    distribucion_nivel_educativo: dict
+    nivel_educativo: dict
+    afiliacion_salud: dict
     promedio_respuestas_por_encuesta: float
 
 
