@@ -19,6 +19,7 @@ from validators import (
     ESTRATOS_VALIDOS,
     NIVELES_EDUCATIVOS,
     TIPOS_PREGUNTA,
+    AREAS_VALIDAS,
     EDAD_MIN, EDAD_MAX,
     LIKERT_MIN, LIKERT_MAX,
     validar_departamento,
@@ -122,11 +123,10 @@ class Encuestado(BaseModel):
     @field_validator("area", mode="before")
     @classmethod
     def validar_area(cls, v: str) -> str:
-        opciones = {"cabecera", "rural_disperso"}
         v_c = v.strip().lower()
-        if v_c not in opciones:
+        if v_c not in AREAS_VALIDAS:
             raise ValueError(
-                f"'area' debe ser 'cabecera' o 'rural_disperso'."
+                f"'area' debe ser uno de: {AREAS_VALIDAS}."
             )
         return v_c
 

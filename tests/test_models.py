@@ -89,6 +89,16 @@ class TestEncuestado:
         with pytest.raises(ValidationError):
             Encuestado(**encuestado_valido)
 
+    def test_area_invalida(self, encuestado_valido):
+        encuestado_valido["area"] = "urbano"
+        with pytest.raises(ValidationError):
+            Encuestado(**encuestado_valido)
+
+    def test_area_valida_rural(self, encuestado_valido):
+        encuestado_valido["area"] = "rural_disperso"
+        enc = Encuestado(**encuestado_valido)
+        assert enc.area == "rural_disperso"
+
 
 # ── Tests RespuestaEncuesta ───────────────────────────────────────────────
 class TestRespuestaEncuesta:

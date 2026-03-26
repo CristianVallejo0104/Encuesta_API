@@ -3,20 +3,26 @@ Validadores auxiliares para la API de Encuestas Poblacionales.
 Fuente: DANE - División Político-Administrativa DIVIPOLA 2024
 """
 
-DEPARTAMENTOS_COLOMBIA= ["Amazonas", "Antioquia", "Arauca", "Atlántico", "Bolívar",
+DEPARTAMENTOS_COLOMBIA = [
+    "Amazonas", "Antioquia", "Arauca", "Atlántico", "Bolívar",
     "Boyacá", "Caldas", "Caquetá", "Casanare", "Cauca", "Cesar",
     "Chocó", "Córdoba", "Cundinamarca", "Guainía", "Guaviare",
     "Huila", "La Guajira", "Magdalena", "Meta", "Nariño",
     "Norte de Santander", "Putumayo", "Quindío", "Risaralda",
     "San Andrés y Providencia", "Santander", "Sucre", "Tolima",
-    "Valle del Cauca", "Vaupés", "Vichada", "Bogotá D.C."]
+    "Valle del Cauca", "Vaupés", "Vichada", "Bogotá D.C."
+]
 
-ESTRATOS_VALIDOS=[1,2,3,4,5,6]
+ESTRATOS_VALIDOS = [1, 2, 3, 4, 5, 6]
 
-NIVELES_EDUCATIVOS=["ninguno", "primaria", "secundaria",
-    "tecnico", "tecnologico", "universitario", "posgrado"]
+NIVELES_EDUCATIVOS = [
+    "ninguno", "primaria", "secundaria",
+    "tecnico", "tecnologico", "universitario", "posgrado"
+]
 
-TIPOS_PREGUNTA=["likert", "porcentaje", "binaria", "texto"]
+TIPOS_PREGUNTA = ["likert", "porcentaje", "binaria", "texto"]
+
+AREAS_VALIDAS = ["cabecera", "rural_disperso"]
 
 # ── Rangos estadísticos ───────────────────────────────────────────────────
 EDAD_MIN = 0
@@ -25,6 +31,7 @@ LIKERT_MIN = 1
 LIKERT_MAX = 5
 PORCENTAJE_MIN = 0.0
 PORCENTAJE_MAX = 100.0
+
 
 def validar_departamento(valor: str) -> str:
     """

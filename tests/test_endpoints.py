@@ -89,6 +89,9 @@ class TestCrearEncuesta:
         assert "errores" in data
         assert "mensaje" in data
         assert "ayuda" in data
+        assert "status" in data
+        assert "total_errores" in data
+        assert data["total_errores"] >= 1
 
 
 # ── Tests GET /encuestas/ ─────────────────────────────────────────────────
@@ -120,6 +123,29 @@ class TestObtenerEncuesta:
         assert r.status_code == 404
 
 
+# ── Tests PUT /encuestas/{id} ─────────────────────────────────────────────
+class TestActualizarEncuesta:
+
+    def test_actualizar_encuesta_existente_retorna_200(self):
+        r = client.post("/encuestas/", json=ENCUESTA_VALIDA)
+        encuesta_id = r.json()["id"]
+        payload_actualizado = dict(ENCUESTA_VALIDA)
+        payload_actualizado["encuestado"] = {**ENCUESTA_VALIDA["encuestado"], "edad": 50}
+        r2 = client.put(f"/encuestas/{encuesta_id}", json=payload_actualizado)
+        assert r2.status_code == 200
+        assert r2.json()["encuestado"]["edad"] == 50
+
+    def test_actualizar_id_inexistente_retorna_404(self):
+        r = client.put("/encuestas/id-que-no-existe", json=ENCUESTA_VALIDA)
+        assert r.status_code == 404
+
+    def test_actualizar_preserva_id_original(self):
+        r = client.post("/encuestas/", json=ENCUESTA_VALIDA)
+        encuesta_id = r.json()["id"]
+        r2 = client.put(f"/encuestas/{encuesta_id}", json=ENCUESTA_VALIDA)
+        assert r2.json()["id"] == encuesta_id
+
+
 # ── Tests DELETE /encuestas/{id} ──────────────────────────────────────────
 class TestEliminarEncuesta:
 
@@ -146,4 +172,8 @@ class TestEstadisticas:
         data = r.json()
         assert "total_encuestas" in data
         assert "promedio_edad" in data
+        assert "mediana_edad" in data
         assert "distribucion_estrato" in data
+        assert "distribucion_sexo" in data
+        assert "nivel_educativo" in data
+        assert "afiliacion_salud" in data

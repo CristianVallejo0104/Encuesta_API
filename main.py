@@ -16,12 +16,11 @@ from collections import Counter
 from datetime import datetime
 from typing import List
 
-from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.exceptions import RequestValidationError
 
 from models import EncuestaCompleta, EncuestaDB, EstadisticasResponse
-from fastapi.responses import HTMLResponse
 
 
 
@@ -48,7 +47,7 @@ app = FastAPI(
         "**Validaciones:** edad (0-120), estrato DANE (1-6), "
         "32 departamentos DIVIPOLA, escala Likert (1-5), porcentajes (0-100)."
     ),
-    version="1.1.6",
+    version="1.2.0",
     openapi_tags=[
         {"name": "Encuestas", "description": "Operaciones CRUD sobre encuestas."},
         {"name": "Estadísticas", "description": "Resumen estadístico del repositorio."},
@@ -169,7 +168,9 @@ async def listar_encuestas() -> List[EncuestaDB]:
     return list(db_encuestas.values())
 
 # ── GET /encuestas/estadisticas/ ──────────────────────────────────────────────────────────
-@app.get("/encuestas/estadisticas/", response_model=EstadisticasResponse, tags=["Estadísticas"])
+@app.get("/encuestas/estadisticas/", response_model=EstadisticasResponse, tags=["Estadísticas"],
+         summary="Resumen estadístico demográfico",
+         description="Calcula conteo, promedio y mediana de edad, y distribuciones por estrato, departamento, sexo, nivel educativo y afiliación a salud.")
 @log_request
 async def obtener_estadisticas() -> EstadisticasResponse:
     encuestas = list(db_encuestas.values())
@@ -205,8 +206,8 @@ async def obtener_estadisticas() -> EstadisticasResponse:
         total_encuestas=n,
         promedio_edad=round(sum(edades) / n, 2),
         mediana_edad=round(mediana, 2),
-        distribucion_estrato=dict(Counter(str(e.encuestado.estrato) for e in encuestas)),
-        distribucion_departamento=dict(Counter(e.encuestado.departamento for e in encuestas)),
+        distribucion_estrato=dict(sorted(Counter(str(e.encuestado.estrato) for e in encuestas).items())),
+        distribucion_departamento=dict(Counter(e.encuestado.departamento for e in encuestas).most_common()),
         distribucion_sexo=dict(Counter(e.encuestado.sexo for e in encuestas)),
         nivel_educativo=dict(Counter(e.encuestado.nivel_educativo or "no_especificado" for e in encuestas)),
         afiliacion_salud=salud_counts,
@@ -253,7 +254,6 @@ async def estadisticas_respuestas():
     p04_no = p04_vals.count("no")
 
     # Contar P05 top 5
-    from collections import Counter
     p05_top = dict(Counter(p05_vals).most_common(5))
 
     return {
@@ -742,7 +742,7 @@ async def raiz():
         </div>
 
         <div class="alert" id="alert-registro"></div>
-        <button class="btn btn-primary" style="width:100%" onclick="registrarEncuesta()">
+        <button id="btn-registrar" class="btn btn-primary" style="width:100%" onclick="registrarEncuesta()">
           Registrar encuesta
         </button>
       </div>
@@ -933,12 +933,26 @@ function eliminarRespuesta(btn) {
 async function registrarEncuesta() {
     const alertDiv = document.getElementById("alert-registro");
     alertDiv.className = "alert";
+    const nombre = document.getElementById("f-nombre").value.trim();
+    const edad = document.getElementById("f-edad").value;
     const p01 = document.getElementById("p01-valor").value;
     const p02 = document.getElementById("p02-valor").value;
     const p03 = document.getElementById("p03-valor").value;
     const p04 = document.getElementById("p04-valor").value;
-    const p05 = document.getElementById("p05-valor").value;
+    const p05 = document.getElementById("p05-valor").value.trim();
 
+    if (nombre.length < 2) {
+      alertDiv.className = "alert alert-error visible";
+      alertDiv.innerHTML = "❌ El nombre debe tener al menos 2 caracteres.";
+      alertDiv.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (!edad || parseInt(edad) < 0 || parseInt(edad) > 120) {
+      alertDiv.className = "alert alert-error visible";
+      alertDiv.innerHTML = "❌ La edad debe estar entre 0 y 120 años.";
+      alertDiv.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     if (!p01 || !p02 || !p03 || !p04 || !p05) {
     alertDiv.className = "alert alert-error visible";
     alertDiv.innerHTML = "❌ Por favor completa todas las preguntas de la encuesta.";
@@ -981,8 +995,8 @@ async function registrarEncuesta() {
 
   const payload = {
     encuestado: {
-      nombre: document.getElementById("f-nombre").value,
-      edad: parseInt(document.getElementById("f-edad").value),
+      nombre: nombre,
+      edad: parseInt(edad),
       sexo: document.getElementById("f-sexo").value,
       estrato: parseInt(document.getElementById("f-estrato").value),
       departamento: document.getElementById("f-departamento").value,
@@ -1004,6 +1018,14 @@ async function registrarEncuesta() {
       alertDiv.className = "alert alert-success visible";
       alertDiv.innerHTML = `✅ Encuesta registrada correctamente. ID: <code style="font-size:11px">${data.id}</code>`;
       alertDiv.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Limpiar formulario
+      document.getElementById("f-nombre").value = "";
+      document.getElementById("f-edad").value = "";
+      document.getElementById("p01-valor").value = "";
+      document.getElementById("p02-valor").value = "";
+      document.getElementById("p03-valor").value = "";
+      document.getElementById("p04-valor").value = "";
+      document.getElementById("p05-valor").value = "";
       cargarEstadisticas();
       cargarEncuestas();
       cargarEstadisticasRespuestas();
@@ -1040,8 +1062,10 @@ async function buscarPorId() {
           <div>🎂 <b>Edad:</b> ${d.encuestado.edad} años</div>
           <div>⚡ <b>Estrato:</b> ${d.encuestado.estrato}</div>
           <div>🎓 <b>Nivel:</b> ${d.encuestado.nivel_educativo}</div>
-          <div>👤 <b>Sexo:</b> ${d.encuestado.sexo}</div>
-          <div>🏥 <b>Salud:</b> ${d.encuestado.afiliado_salud ? "Sí" : "No"}</div>
+          <div>👤 <b>Sexo:</b> ${d.encuestado.sexo === 'M' ? 'Masculino' : 'Femenino'}</div>
+          <div>🏥 <b>Salud:</b> ${d.encuestado.afiliado_salud ? "Afiliado" : "No afiliado"}</div>
+          <div>🏘 <b>Área:</b> ${d.encuestado.area === 'cabecera' ? 'Cabecera municipal' : 'Rural disperso'}</div>
+          <div>📦 <b>Fuente:</b> ${d.fuente || '—'}</div>
         </div>
         <div style="margin-top:10px;color:var(--gris-400);font-size:11px">
           ID: ${d.id} · Registrado: ${new Date(d.registrado_en).toLocaleString("es-CO")}
@@ -1059,11 +1083,17 @@ async function buscarPorId() {
 // ── Eliminar encuesta ─────────────────────────────────────────────────────
 async function eliminarEncuesta(id) {
   if (!confirm("¿Seguro que deseas eliminar esta encuesta?")) return;
-  await fetch(`${API}/encuestas/${id}`, {method:"DELETE"});
-  document.getElementById("resultado-busqueda").innerHTML =
-    `<div class="alert alert-info visible">🗑 Encuesta eliminada correctamente.</div>`;
-  cargarEstadisticas();
-  cargarEncuestas();
+  const r = await fetch(`${API}/encuestas/${id}`, {method:"DELETE"});
+  if (r.status === 204) {
+    document.getElementById("resultado-busqueda").innerHTML =
+      `<div class="alert alert-info visible">🗑 Encuesta eliminada correctamente.</div>`;
+    cargarEstadisticas();
+    cargarEncuestas();
+    cargarEstadisticasRespuestas();
+  } else {
+    document.getElementById("resultado-busqueda").innerHTML =
+      `<div class="alert alert-error visible">❌ No se pudo eliminar la encuesta.</div>`;
+  }
 }
 async function cargarParaEditar(id) {
   try {
@@ -1088,9 +1118,21 @@ async function cargarParaEditar(id) {
     });
 
     // Cambiar botón a modo edición
-    const btn = document.querySelector("button[onclick='registrarEncuesta()']");
+    const btn = document.getElementById("btn-registrar");
     btn.textContent = "✏ Actualizar encuesta";
     btn.onclick = () => actualizarEncuesta(id);
+
+    // Añadir botón cancelar si no existe
+    if (!document.getElementById("btn-cancelar-edicion")) {
+      const cancelBtn = document.createElement("button");
+      cancelBtn.id = "btn-cancelar-edicion";
+      cancelBtn.className = "btn btn-outline";
+      cancelBtn.style.width = "100%";
+      cancelBtn.style.marginTop = "8px";
+      cancelBtn.textContent = "✕ Cancelar edición";
+      cancelBtn.onclick = cancelarEdicion;
+      btn.parentNode.insertBefore(cancelBtn, btn.nextSibling);
+    }
 
     // Scroll al formulario
     document.querySelector(".card").scrollIntoView({ behavior: "smooth" });
@@ -1148,9 +1190,11 @@ async function actualizarEncuesta(id) {
       alertDiv.scrollIntoView({ behavior: "smooth", block: "center" });
 
       // Restaurar botón a modo registro
-      const btn = document.querySelector("button[onclick]");
+      const btn = document.getElementById("btn-registrar");
       btn.textContent = "Registrar encuesta";
       btn.onclick = registrarEncuesta;
+      const cancelBtn = document.getElementById("btn-cancelar-edicion");
+      if (cancelBtn) cancelBtn.remove();
 
       cargarEstadisticas();
       cargarEncuestas();
@@ -1213,6 +1257,15 @@ async function cargarEstadisticasRespuestas() {
 }
 
 
+
+function cancelarEdicion() {
+  const btn = document.getElementById("btn-registrar");
+  btn.textContent = "Registrar encuesta";
+  btn.onclick = registrarEncuesta;
+  const cancelBtn = document.getElementById("btn-cancelar-edicion");
+  if (cancelBtn) cancelBtn.remove();
+  document.getElementById("resultado-busqueda").innerHTML = "";
+}
 
 // ── Cargar estadísticas ───────────────────────────────────────────────────
 async function cargarEstadisticas() {

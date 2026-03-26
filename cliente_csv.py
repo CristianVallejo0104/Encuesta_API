@@ -32,7 +32,7 @@ def construir_payload(fila: pd.Series) -> dict:
             "departamento": random.choice(DEPARTAMENTOS_COLOMBIA), # <-- ELIGE UNO AL AZAR
             "area": fila["area"],
             "nivel_educativo": fila["nivel_educativo"],
-            "afiliado_salud": bool(fila["afiliado_salud"] == 1),
+            "afiliado_salud": int(fila["afiliado_salud"]) == 1 if pd.notna(fila["afiliado_salud"]) else False,
         },
         "respuestas": [
             {
@@ -44,7 +44,7 @@ def construir_payload(fila: pd.Series) -> dict:
             {
                 "pregunta_id": "P02",
                 "enunciado": "Percepción de calidad de vida",
-                "tipo_pregunta": "Likert",
+                "tipo_pregunta": "likert",
                 "valor": random.randint(1,5)
             },
             {
