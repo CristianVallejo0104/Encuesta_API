@@ -5,8 +5,8 @@ API REST para recolección y validación de datos de encuestas demográficas en 
 El sistema actúa como una **aduana transaccional**: cualquier dato inválido es rechazado antes de entrar al repositorio de análisis.
 
 ## Autores
-- Cristian Vallejo
 - Natalia González
+- Cristian Vallejo
 
 USTA 2026
 ---
@@ -107,7 +107,31 @@ Encuesta_api/
 pytest tests/ -v
 ```
 
-38 tests — 21 unitarios (modelos) + 17 de integración (endpoints).
+El proyecto cuenta con *38 tests automatizados* divididos en dos archivos:
+
+### tests/test_models.py — 21 tests unitarios
+Prueban los modelos Pydantic de forma aislada, sin necesidad de levantar el servidor.
+Verifican que las validaciones acepten datos correctos y rechacen datos inválidos.
+
+| Clase | Qué prueba |
+|---|---|
+| TestEncuestado | Edad fuera de rango, estrato inválido, departamento inexistente, normalización de mayúsculas, sexo incorrecto |
+| TestRespuestaEncuesta | Likert fuera de escala 1-5, porcentaje mayor a 100, binaria con valor no permitido, formato incorrecto de pregunta_id |
+| TestEncuestaCompleta | Lista de respuestas vacía, preguntas duplicadas en una misma encuesta |
+
+### tests/test_endpoints.py — 17 tests de integración
+Usan TestClient de FastAPI para simular peticiones HTTP reales a todos los endpoints.
+No requieren que el servidor esté corriendo — TestClient lo simula internamente.
+
+| Clase | Qué prueba |
+|---|---|
+| TestCrearEncuesta | POST válido retorna 201, campos inválidos retornan 422 con estructura personalizada |
+| TestListarEncuestas | GET retorna 200 y una lista |
+| TestObtenerEncuesta | GET por ID existente retorna datos, ID inexistente retorna 404 |
+| TestEliminarEncuesta | DELETE existente retorna 204, ID inexistente retorna 404 |
+| TestEstadisticas | GET estadísticas retorna 200 con todos los campos esperados |
+
+
 
 ## Tecnologías
 
