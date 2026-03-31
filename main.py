@@ -625,57 +625,53 @@ async def raiz():
           </div>
           <div class="form-group">
             <label>Sexo</label>
-            <select id="f-sexo">
+            <input list="lista-sexo" id="f-sexo" placeholder="Ej: F o M">
+            <datalist id="lista-sexo">
               <option value="F">F — Femenino</option>
               <option value="M">M — Masculino</option>
-            </select>
+            </datalist>
           </div>
           <div class="form-group">
             <label>Estrato DANE (1–6)</label>
-            <select id="f-estrato">
-              <option value="1">Estrato 1</option>
-              <option value="2">Estrato 2</option>
-              <option value="3" selected>Estrato 3</option>
-              <option value="4">Estrato 4</option>
-              <option value="5">Estrato 5</option>
-              <option value="6">Estrato 6</option>
-            </select>
+            <input type="number" list="lista-estrato" id="f-estrato" placeholder="Ej: 3">
+            <datalist id="lista-estrato">
+              <option value="1"></option><option value="2"></option><option value="3"></option>
+              <option value="4"></option><option value="5"></option><option value="6"></option>
+            </datalist>
           </div>
           <div class="form-group">
             <label>Departamento</label>
-            <select id="f-departamento">
-              <option>Amazonas</option><option>Antioquia</option><option>Arauca</option>
-              <option>Atlántico</option><option>Bogotá D.C.</option><option>Bolívar</option>
-              <option>Boyacá</option><option>Caldas</option><option>Caquetá</option>
-              <option>Casanare</option><option>Cauca</option><option>Cesar</option>
-              <option>Chocó</option><option>Córdoba</option><option>Cundinamarca</option>
-              <option>Guainía</option><option>Guaviare</option><option>Huila</option>
-              <option>La Guajira</option><option>Magdalena</option><option>Meta</option>
-              <option>Nariño</option><option>Norte de Santander</option><option>Putumayo</option>
-              <option>Quindío</option><option>Risaralda</option>
-              <option>San Andrés y Providencia</option><option>Santander</option>
-              <option>Sucre</option><option>Tolima</option><option>Valle del Cauca</option>
-              <option>Vaupés</option><option>Vichada</option>
-            </select>
+            <input list="lista-departamento" id="f-departamento" placeholder="Escribe o selecciona...">
+            <datalist id="lista-departamento">
+              <option value="Amazonas"></option><option value="Antioquia"></option><option value="Arauca"></option>
+              <option value="Atlántico"></option><option value="Bogotá D.C."></option><option value="Bolívar"></option>
+              <option value="Boyacá"></option><option value="Caldas"></option><option value="Caquetá"></option>
+              <option value="Casanare"></option><option value="Cauca"></option><option value="Cesar"></option>
+              <option value="Chocó"></option><option value="Córdoba"></option><option value="Cundinamarca"></option>
+              <option value="Guainía"></option><option value="Guaviare"></option><option value="Huila"></option>
+              <option value="La Guajira"></option><option value="Magdalena"></option><option value="Meta"></option>
+              <option value="Nariño"></option><option value="Norte de Santander"></option><option value="Putumayo"></option>
+              <option value="Quindío"></option><option value="Risaralda"></option>
+              <option value="San Andrés y Providencia"></option><option value="Santander"></option>
+              <option value="Sucre"></option><option value="Tolima"></option><option value="Valle del Cauca"></option>
+              <option value="Vaupés"></option><option value="Vichada"></option>
+            </datalist>
           </div>
           <div class="form-group">
             <label>Área geográfica</label>
-            <select id="f-area">
+            <input list="lista-area" id="f-area" placeholder="Ej: cabecera">
+            <datalist id="lista-area">
               <option value="cabecera">Cabecera municipal</option>
               <option value="rural_disperso">Rural disperso</option>
-            </select>
+            </datalist>
           </div>
           <div class="form-group">
             <label>Nivel educativo</label>
-            <select id="f-nivel">
-              <option value="ninguno">Ninguno</option>
-              <option value="primaria">Primaria</option>
-              <option value="secundaria" selected>Secundaria</option>
-              <option value="tecnico">Técnico</option>
-              <option value="tecnologico">Tecnológico</option>
-              <option value="universitario">Universitario</option>
-              <option value="posgrado">Posgrado</option>
-            </select>
+            <input list="lista-nivel" id="f-nivel" placeholder="Ej: secundario">
+            <datalist id="lista-nivel">
+              <option value="ninguno"></option><option value="primaria"></option><option value="secundaria"></option>
+              <option value="tecnico"></option><option value="tecnologico"></option><option value="universitario"></option><option value="posgrado"></option>
+            </datalist>
           </div>
           <div class="form-group">
             <label>Afiliado a salud</label>

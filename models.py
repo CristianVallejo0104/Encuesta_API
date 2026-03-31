@@ -9,6 +9,7 @@ Jerarquía:
 """
 from __future__ import annotations 
 import uuid 
+import re
 from datetime import datetime
 from typing import List, Optional, Union
 
@@ -97,7 +98,9 @@ class Encuestado(BaseModel):
         longitud mínima y máxima.
         """
         if isinstance(v, str):
-            return v.strip().title()
+            v= v.strip().title()
+            if not re.match(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", v):
+                raise ValueError("El nombre no puede contener números ni caracteres especiales")
         return v
 
     @field_validator("departamento", mode="before")
