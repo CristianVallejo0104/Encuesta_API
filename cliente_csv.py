@@ -25,7 +25,7 @@ def construir_payload(fila: pd.Series) -> dict:
    
     return {
         "encuestado": {
-            "nombre": f"Encuestado GEIH {fila['DIRECTORIO']}",
+            "nombre": "Encuestado Anonimo",
             "edad": int(fila["edad"]),
             "sexo": fila["sexo"],
             "estrato": random.randint(1,6),
